@@ -35,9 +35,15 @@ let demo_rpc rpc =
   let () = Xmlrpc.string_of_response response |> Async.prerr_endline in
   return response
 
-let get_lookup_result rpc arg = 
-  lookup rpc arg >>>= 
+let get_result rpc_call to_str rpc arg = 
+  rpc_call rpc arg >>>= 
   (function
-  | Ok result -> return result
+  | Ok result -> return (to_str result)
   | Error _ -> return "RPC call failed")
+  
+let get_lookup_result =
+  get_result lookup Fn.id
+
+let get_search_result =
+  get_result search (String.concat ~sep:"\n")
   

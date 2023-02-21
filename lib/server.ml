@@ -5,7 +5,7 @@ open Cohttp_async
 
 let rpc_fn =
   let module Interface = BookstoreAPI(GenServer ()) in
-  Interface.lookup (fun _ -> Rpc_async.ErrM.return "found");
+  Interface.lookup (fun x -> Rpc_async.ErrM.return (Int.to_string x));
   Interface.search (fun _ -> Rpc_async.ErrM.return ["found"]);
   server Interface.implementation
 
