@@ -21,7 +21,7 @@ module LookupResponse = struct
   [@@deriving rpcty]
 
   let to_string t =
-    sprintf "Title: %s\nTopic: %s\nRemaining Stock: %d\nPrice: %f\n" t.title
+    sprintf "Title: %s\nTopic: %s\nRemaining Stock: %d\nPrice: %.2f\n" t.title
       t.topic t.stock t.price
 end
 

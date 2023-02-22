@@ -4,7 +4,7 @@ open Async
 let () =
   let commands =
     [
-      ("server", Bin_server.command);
+      ("server", Bin_server.commands);
       ("client", Bin_client.commands);
       ("db", Bin_db.db_commands);
     ]

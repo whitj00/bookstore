@@ -5,7 +5,7 @@ val create_pool :
   unit ->
   (Caqti_async.connection, [> Caqti_error.connect ]) Caqti_async.Pool.t
 
-val create_table :
+val create_tables :
   pool:
     ( (module Caqti_async.CONNECTION),
       [< Caqti_error.t > `Decode_rejected
@@ -19,7 +19,7 @@ val create_table :
   unit ->
   unit Async.Deferred.t
 
-val drop_table :
+val drop_tables :
   pool:
     ( (module Caqti_async.CONNECTION),
       [< Caqti_error.t > `Decode_rejected
@@ -102,3 +102,13 @@ val buy_book :
     Caqti_async.Pool.t ->
   int ->
   (bool * string) Async_kernel__Types.Deferred.t
+
+val get_purchases:
+  pool:((module Caqti_async.CONNECTION),
+  [< Caqti_error.t
+  > `Decode_rejected `Encode_failed `Encode_rejected
+    `Request_failed `Request_rejected `Response_failed
+    `Response_rejected ])
+  Caqti_async.Pool.t ->
+  unit ->
+  (int * string * float * int) list Async_kernel__Types.Deferred.t

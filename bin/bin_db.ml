@@ -6,14 +6,14 @@ let create_cmd ~pool =
   Command.async ~summary:"creates a books table"
     (let%map_open.Command () = return () in
      fun () ->
-       let%bind _ = Db.create_table ~pool () in
+       let%bind _ = Db.create_tables ~pool () in
        Deferred.unit)
 
 let drop_cmd ~pool =
   Command.async ~summary:"drops our books table"
     (let%map_open.Command () = return () in
      fun () ->
-       let%bind _ = Db.drop_table ~pool () in
+       let%bind _ = Db.drop_tables ~pool () in
        Deferred.unit)
 
 let reset_cmd ~pool =
