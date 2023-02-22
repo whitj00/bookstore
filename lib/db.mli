@@ -59,4 +59,4 @@ val search_book :
                 `Response_rejected ])
             Caqti_async.Pool.t ->
     string ->
-    string list Async_kernel__Types.Deferred.t
+    (int * string) list Async_kernel__Types.Deferred.t

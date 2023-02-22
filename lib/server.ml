@@ -17,9 +17,11 @@ let lookup ~pool item_number =
 let search ~pool search_query =
   let lookup_async =
     let%bind result = Db.search_book ~pool search_query in
-    match result with
-    | [] -> Error (Idl.DefaultError.InternalError "No results found") |> Deferred.return
-    | results -> Ok results |> return
+    let records = List.map result ~f:(fun (item_number,title) ->
+      {SearchRecord.item_number;title}
+    )
+    in
+    return (Ok records)
   in
   T.put lookup_async
   

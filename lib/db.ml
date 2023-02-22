@@ -12,26 +12,7 @@ let exec_unit_no_args ~pool query =
   match result with
   | Ok () -> return ()
   | Error e -> Caqti_error.show e |> failwith
-
-let exec_unit_with_args ~pool query args =
-  let query' (module C : Caqti_async.CONNECTION) =
-    C.exec query args
-  in
-  let%bind result = Caqti_async.Pool.use query' pool in
-  match result with
-  | Ok () -> return ()
-  | Error e -> Caqti_error.show e |> failwith
-
-let find_one_with_args ~pool query args =
-  let query' (module C : Caqti_async.CONNECTION) =
-    C.find_opt query args
-  in
-  let%bind result = Caqti_async.Pool.use query' pool in
-  match result with
-  | Ok x -> return x
-  | Error e -> Caqti_error.show e |> failwith
     
-  (* Create an Sqlite Connection pool *)
 let create_pool ?(uri) () =
   let uri = Option.value uri ~default:default_url in
   match Caqti_async.connect_pool ~max_size:10 (Uri.of_string uri) with
@@ -45,16 +26,22 @@ let add_row ~pool (id,title,topic,stock,price) =
     (tup2 (tup4 int string string int) float) -->. unit @:-
     "INSERT INTO books (ID,TITLE,TOPIC,STOCK,PRICE) VALUES (?,?,?,?,?)"
   in
-  let row = ((id,title,topic,stock),price) in
-  exec_unit_with_args ~pool query row
+  let query' (module C : Caqti_async.CONNECTION) =
+    C.exec query ((id,title,topic,stock),price)
+  in
+  let%bind result = Caqti_async.Pool.use query' pool in
+  match result with
+  | Ok () -> return ()
+  | Error e -> Caqti_error.show e |> failwith
   
-let initial_books =
-  [(53477, "Achieve Less Bugs and More Hugs in CSCI 339", "distributed systems", 5, 10.00);
-   (53573, "Distributed Systems for Dummies", "distributed systems", 5, 10.00);
-   (12365, "Surviving College", "college life", 5, 10.00);
-   (12498, "Cooking for the Impatient Undergraduate", "college life", 5, 10.00)]
 
 let create_table ~pool () = 
+  let initial_books =
+    [(53477, "Achieve Less Bugs and More Hugs in CSCI 339", "distributed systems", 5, 10.00);
+     (53573, "Distributed Systems for Dummies", "distributed systems", 5, 10.00);
+     (12365, "Surviving College", "college life", 5, 10.00);
+     (12498, "Cooking for the Impatient Undergraduate", "college life", 5, 10.00)]
+  in 
   let query =
     let open Caqti_type.Std in
     let open Caqti_request.Infix in
@@ -91,7 +78,13 @@ let lookup_book ~pool item_number =
     int -->! (tup4 string string int float) @:-
     "SELECT title,topic,stock,price FROM BOOKS WHERE ID = ?"  
   in
-  find_one_with_args ~pool query item_number
+  let query' (module C : Caqti_async.CONNECTION) =
+    C.find_opt query item_number
+  in
+  let%bind result = Caqti_async.Pool.use query' pool in
+  match result with
+  | Ok x -> return x
+  | Error e -> Caqti_error.show e |> failwith
 
 let search_book ~pool search_query =
   let query =
@@ -102,7 +95,7 @@ let search_book ~pool search_query =
   in
   let wrapped_string = ["%";search_query;"%"] |> String.concat in
   let query' (module C : Caqti_async.CONNECTION) =
-    C.fold query (fun (id,title) acc -> sprintf "%i: %s" id title :: acc) wrapped_string []
+    C.fold query (fun a acc -> a :: acc) wrapped_string []
   in
   let%bind result = Caqti_async.Pool.use query' pool in
   match result with

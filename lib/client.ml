@@ -39,4 +39,4 @@ let get_lookup_result =
   get_result lookup LookupResponse.to_string
 
 let get_search_result =
-  get_result search (String.concat ~sep:"\n")
+  get_result search SearchResponse.to_string

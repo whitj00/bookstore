@@ -1,12 +1,13 @@
 open! Core
 
+module SearchRecord = struct
+  type t = {
+    title: string;
+    item_number: int;
+  } [@@deriving rpcty]
+end
+
 module SearchResponse = struct
-  module SearchRecord = struct
-    type t = {
-      title: string;
-      item_number: int;
-    } [@@deriving rpcty]
-  end
 
   type t = SearchRecord.t list [@@deriving rpcty]
 
