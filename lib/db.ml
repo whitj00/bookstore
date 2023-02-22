@@ -16,12 +16,13 @@ let some_or_error ~pool query =
   | Error e -> Caqti_error.show e |> failwith
 
 module Connection = struct
-  let default_url =
-    "sqlite3:////Users/whitjackson/Downloads/bookstore/test.db?create=true"
+  let default =
+    [ "sqlite3:///"; Core_unix.getcwd (); "/test.db?create=true" ]
+    |> String.concat
 
   let create_pool ?uri () =
-    let uri = Option.value uri ~default:default_url in
-    match Caqti_async.connect_pool ~max_size:10 (Uri.of_string uri) with
+    let uri = Option.value uri ~default in
+    match Caqti_async.connect_pool ~max_size:20 (Uri.of_string uri) with
     | Ok pool -> pool
     | Error err -> failwith (Caqti_error.show err)
 

@@ -1,6 +1,4 @@
 module Connection : sig
-  val default_url : string
-
   val create_pool :
     ?uri:string ->
     unit ->
