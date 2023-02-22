@@ -10,8 +10,9 @@ let start_command ~pool =
          ~doc:" Port (Default: 8000)"
      in
      fun () ->
-       let%bind _ = Server.start ~pool ~port () in
-       return ())
+      let () = print_endline "Starting server..." in
+      let%bind _ = Server.start ~pool ~port () in
+      return ())
 
 let logs_cmd ~pool =
   Command.async ~summary:"Prings a log of purchases"
@@ -20,7 +21,7 @@ let logs_cmd ~pool =
        let%bind purchases = Db.get_purchases ~pool () in
        List.iter purchases
          ~f:(fun (purchase_id, time_created, price, item_number) ->
-           printf "%d: %s %.2f %d\n" purchase_id time_created price item_number)
+           printf "%d (%s): Bought %d for $%.2f\n" purchase_id time_created item_number price)
        |> return)
 
 let commands =
