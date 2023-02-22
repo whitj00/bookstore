@@ -23,6 +23,13 @@ let search_cmd =
     (let%map_open.Command topic = anon ("topic" %: string) in
      fun () -> call_and_print_with_arg Client.get_search_result topic)
 
+let buy_cmd =
+  Command.async ~summary:"Buys an item from the bookstore"
+    (let%map_open.Command item_number = anon ("item_number" %: int) in
+     fun () -> call_and_print_with_arg Client.get_buy_result item_number)
+
 let commands =
-  let subcommands = [ ("lookup", lookup_cmd); ("search", search_cmd) ] in
+  let subcommands =
+    [ ("lookup", lookup_cmd); ("search", search_cmd); ("buy", buy_cmd) ]
+  in
   Command.group ~summary:"Make an RPC client call" subcommands

@@ -37,3 +37,4 @@ let get_result rpc_call to_str rpc arg =
 
 let get_lookup_result = get_result lookup LookupResponse.to_string
 let get_search_result = get_result search SearchResponse.to_string
+let get_buy_result = get_result buy BuyResponse.to_string

@@ -25,6 +25,15 @@ module LookupResponse = struct
       t.topic t.stock t.price
 end
 
+module BuyResponse = struct
+  type t = { success : bool; message : string } [@@deriving rpcty]
+
+  let to_string t =
+    match t with
+    | { success = true; _ } -> "Purchase successful\n"
+    | { success = false; message } -> sprintf "Purchase failed: %s\n" message
+end
+
 module BookstoreAPI (R : Idl.RPC) = struct
   open R
   open Idl
@@ -45,6 +54,7 @@ module BookstoreAPI (R : Idl.RPC) = struct
   let int_p name = Idl.Param.mk ~name Rpc.Types.int
   let search_response_p = Idl.Param.mk ~name:"return" SearchResponse.t
   let lookup_response_p = Idl.Param.mk ~name:"return" LookupResponse.t
+  let buy_response_p = Idl.Param.mk ~name:"return" BuyResponse.t
   let e1 = Idl.DefaultError.err
 
   let search =
@@ -55,6 +65,11 @@ module BookstoreAPI (R : Idl.RPC) = struct
     declare "lookup"
       [ "Find a book by its item_number" ]
       (int_p "item_number" @-> returning lookup_response_p e1)
+
+  let buy =
+    declare "buy"
+      [ "Buy a book by item number" ]
+      (int_p "item_number" @-> returning buy_response_p e1)
 end
 
 module M = Idl.IdM

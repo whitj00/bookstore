@@ -4,5 +4,8 @@ val get_lookup_result :
 val get_search_result :
   Rpc_async.T.rpcfn -> string -> string Async_kernel__Types.Deferred.t
 
+val get_buy_result :
+  Rpc_async.T.rpcfn -> int -> string Async_kernel__Types.Deferred.t
+
 val create_remote_rpc :
   host:string -> port:int -> Rpc.call -> Rpc.response Async.Deferred.t

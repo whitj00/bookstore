@@ -16,7 +16,7 @@ let lookup ~pool item_number =
   T.put lookup_async
 
 let search ~pool search_query =
-  let lookup_async =
+  let search_async =
     let%bind result = Db.search_book ~pool search_query in
     let records =
       List.map result ~f:(fun (item_number, title) ->
@@ -24,12 +24,20 @@ let search ~pool search_query =
     in
     return (Ok records)
   in
+  T.put search_async
+
+let buy ~pool item_number =
+  let lookup_async =
+    let%bind success, message = Db.buy_book ~pool item_number in
+    return (Ok { BuyResponse.success; message })
+  in
   T.put lookup_async
 
 let rpc_fn ~pool =
   let module Interface = BookstoreAPI (GenServer ()) in
   Interface.lookup (lookup ~pool);
   Interface.search (search ~pool);
+  Interface.buy (buy ~pool);
   server Interface.implementation
 
 let serve process_fn ~port =
