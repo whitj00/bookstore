@@ -172,7 +172,6 @@ let buy_book ~pool item_number =
         | false -> return (Ok (success, message))
         | true ->
             let%bind.Deferred.Result price = C.find update_query item_number in
-            let () = print_float price in
             let%bind.Deferred.Result () =
               C.exec insert_query (item_number, price)
             in
@@ -203,13 +202,28 @@ let update_price ~pool price id =
   let query =
     let open Caqti_type.Std in
     let open Caqti_request.Infix in
-    (tup3 float int int -->! bool)
+    (tup2 float int -->! bool)
     @:- "UPDATE BOOKS SET PRICE = ? WHERE ID = ? RETURNING id"
   in
   let query' (module C : Caqti_async.CONNECTION) =
-    C.find_opt query (price, id, id)
+    C.find_opt query (price, id)
   in
   let%bind result = Caqti_async.Pool.use query' pool in
   match result with
   | Ok x -> Option.is_some x |> return
   | Error e -> Caqti_error.show e |> failwith
+
+let update_stock ~pool id =
+  let query =
+    let open Caqti_type.Std in
+    let open Caqti_request.Infix in
+    (int -->! bool)
+    @:- "UPDATE BOOKS SET STOCK = STOCK + 5 WHERE ID = ? RETURNING id"
+  in
+  let query' (module C : Caqti_async.CONNECTION) =
+    C.find_opt query id
+  in
+  let%bind result = Caqti_async.Pool.use query' pool in
+  match result with
+  | Ok x -> Option.is_some x |> return
+  | Error e -> Caqti_error.show e |> failwith  

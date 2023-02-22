@@ -25,23 +25,34 @@ let logs_cmd ~pool =
              item_number price)
        |> return)
 
-let update_cmd ~pool =
-  Command.async ~summary:"Prings a log of purchases"
+let update_price_cmd ~pool =
+  Command.async ~summary:"Updates the price of a book"
     (let%map_open.Command id = anon ("id" %: int)
      and price = anon ("price" %: float) in
      fun () ->
        let%map result = Db.update_price ~pool price id in
        match result with
        | true -> print_endline "Price updated"
-       | false -> print_endline "Price not updated")
+       | false -> printf "Book %d not found\n" id)
 
+let restock_cmd ~pool =
+  Command.async ~summary:"Increases the stock of a book by 5"
+    (let%map_open.Command id = anon ("id" %: int) in
+      fun () ->
+        let%map result = Db.update_stock ~pool id in
+        match result with
+        | true -> print_endline "Added 5 books to stock"
+        | false -> printf "Book %d not found\n" id)
+      
+      
 let commands =
   let pool = Db.create_pool () in
   let subcommands =
     [
       ("start", start_command ~pool);
       ("logs", logs_cmd ~pool);
-      ("update", update_cmd ~pool);
+      ("update", update_price_cmd ~pool);
+      ("restock", restock_cmd ~pool);
     ]
   in
   Command.group ~summary:"Database manipulation commands for development"
