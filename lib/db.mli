@@ -116,3 +116,18 @@ val get_purchases :
     Caqti_async.Pool.t ->
   unit ->
   (int * string * float * int) list Async_kernel__Types.Deferred.t
+
+val update_price :
+  pool:
+    ( (module Caqti_async.CONNECTION),
+      [< Caqti_error.t > `Decode_rejected
+      `Encode_failed
+      `Encode_rejected
+      `Request_failed
+      `Request_rejected
+      `Response_failed
+      `Response_rejected ] )
+    Caqti_async.Pool.t ->
+  float ->
+  int ->
+  bool Async_kernel__Types.Deferred.t

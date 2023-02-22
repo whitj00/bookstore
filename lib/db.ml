@@ -198,3 +198,18 @@ let get_purchases ~pool () =
   match result with
   | Ok x -> return x
   | Error e -> Caqti_error.show e |> failwith
+
+let update_price ~pool price id =
+  let query =
+    let open Caqti_type.Std in
+    let open Caqti_request.Infix in
+    (tup3 float int int -->! bool)
+    @:- "UPDATE BOOKS SET PRICE = ? WHERE ID = ? RETURNING id"
+  in
+  let query' (module C : Caqti_async.CONNECTION) =
+    C.find_opt query (price, id, id)
+  in
+  let%bind result = Caqti_async.Pool.use query' pool in
+  match result with
+  | Ok x -> Option.is_some x |> return
+  | Error e -> Caqti_error.show e |> failwith
