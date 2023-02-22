@@ -3,6 +3,18 @@ open! Async
 open! Caqti_async
 open! Caqti_driver_sqlite3
 
+let or_error ~pool query =
+  let%bind result = Caqti_async.Pool.use query pool in
+  match result with
+  | Ok x -> return x
+  | Error e -> Caqti_error.show e |> failwith
+
+let some_or_error ~pool query =
+  let%bind result = Caqti_async.Pool.use query pool in
+  match result with
+  | Ok x -> Option.is_some x |> return
+  | Error e -> Caqti_error.show e |> failwith
+
 module Connection = struct
   let default_url =
     "sqlite3:////Users/whitjackson/Downloads/bookstore/test.db?create=true"
@@ -14,11 +26,8 @@ module Connection = struct
     | Error err -> failwith (Caqti_error.show err)
 
   let exec_unit_no_args ~pool query =
-    let call (module C : Caqti_async.CONNECTION) = C.exec query () in
-    let%bind result = Caqti_async.Pool.use call pool in
-    match result with
-    | Ok () -> return ()
-    | Error e -> Caqti_error.show e |> failwith
+    let query' (module C : Caqti_async.CONNECTION) = C.exec query () in
+    or_error query' ~pool
 end
 
 module Util = struct
@@ -47,10 +56,7 @@ module Util = struct
     let query' (module C : Caqti_async.CONNECTION) =
       C.exec query ((id, title, topic, stock), price)
     in
-    let%bind result = Caqti_async.Pool.use query' pool in
-    match result with
-    | Ok () -> return ()
-    | Error e -> Caqti_error.show e |> failwith
+    or_error query' ~pool
 
   let create_books_table ~pool () =
     let query =
@@ -80,11 +86,6 @@ module Util = struct
     in
     Connection.exec_unit_no_args ~pool query
 
-  let create_tables ~pool () =
-    let%bind () = create_books_table ~pool () in
-    let%bind () = create_purchases_table ~pool () in
-    return ()
-
   let drop_books_table ~pool () =
     let query =
       let open Caqti_request.Infix in
@@ -98,6 +99,11 @@ module Util = struct
       Caqti_type.(unit -->. unit) @:- "DROP TABLE IF EXISTS PURCHASES;"
     in
     Connection.exec_unit_no_args ~pool query
+
+  let create_tables ~pool () =
+    let%bind () = create_books_table ~pool () in
+    let%bind () = create_purchases_table ~pool () in
+    return ()
 
   let drop_tables ~pool () =
     let%bind () = drop_books_table ~pool () in
@@ -120,10 +126,7 @@ module Client = struct
     let query' (module C : Caqti_async.CONNECTION) =
       C.find_opt query item_number
     in
-    let%bind result = Caqti_async.Pool.use query' pool in
-    match result with
-    | Ok x -> return x
-    | Error e -> Caqti_error.show e |> failwith
+    or_error ~pool query'
 
   let search_book ~pool search_query =
     let query =
@@ -135,10 +138,7 @@ module Client = struct
     let query' (module C : Caqti_async.CONNECTION) =
       C.fold query (fun a acc -> a :: acc) wrapped_string []
     in
-    let%bind result = Caqti_async.Pool.use query' pool in
-    match result with
-    | Ok x -> return x
-    | Error e -> Caqti_error.show e |> failwith
+    or_error ~pool query'
 
   let buy_book ~pool item_number =
     let output_query =
@@ -178,10 +178,7 @@ module Client = struct
               in
               return (Ok (success, message)))
     in
-    let%bind result = Caqti_async.Pool.use query' pool in
-    match result with
-    | Ok x -> return x
-    | Error e -> Caqti_error.show e |> failwith
+    or_error ~pool query'
 end
 
 module Server = struct
@@ -195,10 +192,7 @@ module Server = struct
     let query' (module C : Caqti_async.CONNECTION) =
       C.fold query (fun a acc -> a :: acc) () []
     in
-    let%bind result = Caqti_async.Pool.use query' pool in
-    match result with
-    | Ok x -> return x
-    | Error e -> Caqti_error.show e |> failwith
+    or_error ~pool query'
 
   let update_price ~pool price id =
     let query =
@@ -209,10 +203,7 @@ module Server = struct
     let query' (module C : Caqti_async.CONNECTION) =
       C.find_opt query (price, id)
     in
-    let%bind result = Caqti_async.Pool.use query' pool in
-    match result with
-    | Ok x -> Option.is_some x |> return
-    | Error e -> Caqti_error.show e |> failwith
+    some_or_error ~pool query'
 
   let update_stock ~pool id =
     let query =
@@ -221,8 +212,5 @@ module Server = struct
       @:- "UPDATE BOOKS SET STOCK = STOCK + 5 WHERE ID = ? RETURNING id"
     in
     let query' (module C : Caqti_async.CONNECTION) = C.find_opt query id in
-    let%bind result = Caqti_async.Pool.use query' pool in
-    match result with
-    | Ok x -> Option.is_some x |> return
-    | Error e -> Caqti_error.show e |> failwith
+    some_or_error ~pool query'
 end
