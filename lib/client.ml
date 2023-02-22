@@ -29,21 +29,14 @@ let remote_rpc ~host ~port rpc =
 let create_remote_rpc ~host ~port =
   remote_rpc ~host ~port
 
-let demo_rpc rpc =
-  let () = Xmlrpc.string_of_call rpc |> Async.print_endline in
-  let%bind response = Bookstore__Server.rpc_fn rpc in
-  let () = Xmlrpc.string_of_response response |> Async.prerr_endline in
-  return response
-
 let get_result rpc_call to_str rpc arg = 
   rpc_call rpc arg >>>= 
   (function
   | Ok result -> return (to_str result)
-  | Error _ -> return "RPC call failed")
-  
+  | Error e -> return (sprintf "RPC call failed: %s" (Util.string_of_default_error e)))
+
 let get_lookup_result =
-  get_result lookup Fn.id
+  get_result lookup LookupResponse.to_string
 
 let get_search_result =
   get_result search (String.concat ~sep:"\n")
-  

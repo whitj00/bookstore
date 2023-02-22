@@ -1,9 +1,35 @@
+open! Core
+
 module SearchResponse = struct
-  type t = string list [@@deriving rpcty]
+  module SearchRecord = struct
+    type t = {
+      title: string;
+      item_number: int;
+    } [@@deriving rpcty]
+  end
+
+  type t = SearchRecord.t list [@@deriving rpcty]
+
+  let to_string (t: t) =
+    match t with
+    | [] -> "No results found\n"
+    | results -> List.map results ~f:
+      (fun {SearchRecord.title;item_number} ->
+        sprintf "%d: %s" item_number title
+      ) |> String.concat ~sep:"\n"
 end
 
 module LookupResponse = struct
-  type t = string [@@deriving rpcty]
+  type t = {
+    title : string;
+    topic : string;
+    stock : int;
+    price: float;
+  } [@@deriving rpcty]
+
+  let to_string t =
+    sprintf "Title: %s\nTopic: %s\nRemaining Stock: %d\nPrice: %f\n" t.title t.topic t.stock t.price 
+
 end
 
 module BookstoreAPI (R : Idl.RPC) = struct
@@ -36,4 +62,8 @@ module BookstoreAPI (R : Idl.RPC) = struct
     declare "lookup" ["Find a book by its item_number"]
       (int_p "item_number" @-> returning lookup_response_p e1)
 end
+
+module M = Idl.IdM (* You can easily put ExnM here and the code would stay unchanged *)
+
+module MyIdl = Idl.Make (M)
 

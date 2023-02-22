@@ -2,12 +2,6 @@ open Core
 open Async
 open Bookstore
 
-let local_demo_cmd =
-  Command.async
-    ~summary:"Use Genservers"
-    (let%map_open.Command () = return () in
-    fun () -> Client.get_lookup_result Client.demo_rpc 1 |> Deferred.ignore_m)
-
 let call_and_print_with_arg fn arg =
   let rpc_fn = Client.create_remote_rpc ~host:"localhost" ~port:8000 in
   let%bind result = fn rpc_fn arg in
@@ -26,5 +20,5 @@ let search_cmd =
       fun () -> call_and_print_with_arg Client.get_search_result topic)
 
 let commands =
-  let subcommands = ["lookup", lookup_cmd; "search", search_cmd; "local", local_demo_cmd] in
+  let subcommands = ["lookup", lookup_cmd; "search", search_cmd] in
   Command.group ~summary:"Make an RPC client call" subcommands

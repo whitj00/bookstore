@@ -2,6 +2,7 @@ open! Core
 open Async
 open Bookstore
 let command =
+  let pool = Db.create_pool () in
   Command.async
     ~summary:"Start an server"
     (let%map_open.Command port =
@@ -11,5 +12,5 @@ let command =
         ~doc:" Port (Default: 8000)"
     in
     fun () -> let%bind _ = 
-      Server.start ~port () in
+      Server.start ~pool ~port () in
       return ())
