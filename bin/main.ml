@@ -2,5 +2,12 @@ open Core
 open Async
 
 let () =
-  let commands = ["server", Bin_server.command; "client", Bin_client.commands; "db", Bin_db.db_commands] in
-  Command.group ~summary:"Run an RPC server or client" commands |> Command_unix.run
+  let commands =
+    [
+      ("server", Bin_server.command);
+      ("client", Bin_client.commands);
+      ("db", Bin_db.db_commands);
+    ]
+  in
+  Command.group ~summary:"Run an RPC server or client" commands
+  |> Command_unix.run
