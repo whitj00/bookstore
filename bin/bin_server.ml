@@ -38,13 +38,12 @@ let update_price_cmd ~pool =
 let restock_cmd ~pool =
   Command.async ~summary:"Increases the stock of a book by 5"
     (let%map_open.Command id = anon ("id" %: int) in
-      fun () ->
-        let%map result = Db.update_stock ~pool id in
-        match result with
-        | true -> print_endline "Added 5 books to stock"
-        | false -> printf "Book %d not found\n" id)
-      
-      
+     fun () ->
+       let%map result = Db.update_stock ~pool id in
+       match result with
+       | true -> print_endline "Added 5 books to stock"
+       | false -> printf "Book %d not found\n" id)
+
 let commands =
   let pool = Db.create_pool () in
   let subcommands =

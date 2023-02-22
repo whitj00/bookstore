@@ -220,10 +220,8 @@ let update_stock ~pool id =
     (int -->! bool)
     @:- "UPDATE BOOKS SET STOCK = STOCK + 5 WHERE ID = ? RETURNING id"
   in
-  let query' (module C : Caqti_async.CONNECTION) =
-    C.find_opt query id
-  in
+  let query' (module C : Caqti_async.CONNECTION) = C.find_opt query id in
   let%bind result = Caqti_async.Pool.use query' pool in
   match result with
   | Ok x -> Option.is_some x |> return
-  | Error e -> Caqti_error.show e |> failwith  
+  | Error e -> Caqti_error.show e |> failwith
