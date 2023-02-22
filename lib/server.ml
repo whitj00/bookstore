@@ -6,7 +6,7 @@ open Cohttp_async
 
 let lookup ~pool item_number =
   let lookup_async =
-    let%bind result = Db.lookup_book ~pool item_number in
+    let%bind result = Db.Client.lookup_book ~pool item_number in
     match result with
     | Some (title, topic, stock, price) ->
         Ok { LookupResponse.title; topic; stock; price } |> return
@@ -17,7 +17,7 @@ let lookup ~pool item_number =
 
 let search ~pool search_query =
   let search_async =
-    let%bind result = Db.search_book ~pool search_query in
+    let%bind result = Db.Client.search_book ~pool search_query in
     let records =
       List.map result ~f:(fun (item_number, title) ->
           { SearchRecord.item_number; title })
@@ -28,17 +28,10 @@ let search ~pool search_query =
 
 let buy ~pool item_number =
   let lookup_async =
-    let%bind success, message = Db.buy_book ~pool item_number in
+    let%bind success, message = Db.Client.buy_book ~pool item_number in
     return (Ok { BuyResponse.success; message })
   in
   T.put lookup_async
-
-let rpc_fn ~pool =
-  let module Interface = BookstoreAPI (GenServer ()) in
-  Interface.lookup (lookup ~pool);
-  Interface.search (search ~pool);
-  Interface.buy (buy ~pool);
-  server Interface.implementation
 
 let serve process_fn ~port =
   let where_to_listen = Tcp.Where_to_listen.of_port port in
@@ -47,11 +40,18 @@ let serve process_fn ~port =
   in
   Deferred.never ()
 
+let rpc ~pool =
+  let module Interface = BookstoreAPI (GenServer ()) in
+  Interface.lookup (lookup ~pool);
+  Interface.search (search ~pool);
+  Interface.buy (buy ~pool);
+  server Interface.implementation
+
 let start ~pool ~port () =
   let process ~body _a _r =
     let open Deferred.Let_syntax in
     let%bind request = Body.to_string body >>| Xmlrpc.call_of_string in
-    let%bind response = rpc_fn ~pool request >>| Xmlrpc.string_of_response in
+    let%bind response = rpc ~pool request >>| Xmlrpc.string_of_response in
     Server.respond_string response ~status:`OK
   in
   serve process ~port
