@@ -75,7 +75,7 @@ let create_purchases_table ~pool () =
         \    );"
   in
   exec_unit_no_args ~pool query
-  
+
 let create_tables ~pool () =
   let%bind () = create_books_table ~pool () in
   let%bind () = create_purchases_table ~pool () in
@@ -96,12 +96,12 @@ let drop_purchases_table ~pool () =
     (unit -->. unit) @:- "DROP TABLE IF EXISTS PURCHASES;"
   in
   exec_unit_no_args ~pool query
-  
+
 let drop_tables ~pool () =
   let%bind () = drop_books_table ~pool () in
   let%bind () = drop_purchases_table ~pool () in
   return ()
-  
+
 let reset_table ~pool () =
   let%bind () = drop_tables ~pool () in
   let%bind () = create_tables ~pool () in
@@ -142,19 +142,25 @@ let buy_book ~pool item_number =
   let output_query =
     let open Caqti_type.Std in
     let open Caqti_request.Infix in
-    ((tup3 int int int) -->! (tup2 bool string))
-    @:- "SELECT (CASE WHEN EXISTS (SELECT * FROM books where id = ? and stock >= 1) THEN true ELSE false END) as success, (CASE WHEN NOT EXISTS (SELECT * FROM books where id = ?) THEN 'No book found with given item_number' WHEN NOT EXISTS (SELECT * FROM books where id = ? and STOCK > 0) THEN 'Out of stock' ELSE 'Purchase Successful' END) as message"
+    (tup3 int int int -->! tup2 bool string)
+    @:- "SELECT (CASE WHEN EXISTS (SELECT * FROM books where id = ? and stock \
+         >= 1) THEN true ELSE false END) as success, (CASE WHEN NOT EXISTS \
+         (SELECT * FROM books where id = ?) THEN 'No book found with given \
+         item_number' WHEN NOT EXISTS (SELECT * FROM books where id = ? and \
+         STOCK > 0) THEN 'Out of stock' ELSE 'Purchase Successful' END) as \
+         message"
   in
   let update_query =
     let open Caqti_type.Std in
     let open Caqti_request.Infix in
     (int -->! float)
-    @:- "UPDATE BOOKS SET STOCK = STOCK - 1 WHERE ID = ? AND STOCK > 0 RETURNING PRICE"
+    @:- "UPDATE BOOKS SET STOCK = STOCK - 1 WHERE ID = ? AND STOCK > 0 \
+         RETURNING PRICE"
   in
   let insert_query =
     let open Caqti_type.Std in
     let open Caqti_request.Infix in
-    ((tup2 int float) -->. unit)
+    (tup2 int float -->. unit)
     @:- "INSERT INTO purchases (item_number, price) VALUES (?, ?)"
   in
   let query' (module C : Caqti_async.CONNECTION) =
@@ -164,10 +170,12 @@ let buy_book ~pool item_number =
         in
         match success with
         | false -> return (Ok (success, message))
-        | true -> 
+        | true ->
             let%bind.Deferred.Result price = C.find update_query item_number in
             let () = print_float price in
-            let%bind.Deferred.Result () = C.exec insert_query (item_number,price) in
+            let%bind.Deferred.Result () =
+              C.exec insert_query (item_number, price)
+            in
             return (Ok (success, message)))
   in
   let%bind result = Caqti_async.Pool.use query' pool in
@@ -180,7 +188,8 @@ let get_purchases ~pool () =
     let open Caqti_type.Std in
     let open Caqti_request.Infix in
     (unit -->* tup4 int string float int)
-    @:- "SELECT purchase_id, time_created, price, item_number FROM PURCHASES ORDER BY time_created DESC;"
+    @:- "SELECT purchase_id, time_created, price, item_number FROM PURCHASES \
+         ORDER BY time_created DESC;"
   in
   let query' (module C : Caqti_async.CONNECTION) =
     C.fold query (fun a acc -> a :: acc) () []
