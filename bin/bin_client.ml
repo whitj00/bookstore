@@ -35,21 +35,23 @@ module Main = struct
       ~summary:
         "specify a topic (or category) and returns all entries belonging to \
          that category"
-         Client.Main.search
+      Client.Main.search
 
   let buy_cmd =
     create_cmd ~arg_name:"item-number" ~arg_type:Command.Param.int
-      ~summary:"Buys an item from the bookstore"       Client.Main.buy
+      ~summary:"Buys an item from the bookstore" Client.Main.buy
 end
 
 module Time = struct
   let create_time_cmd ~arg_name ~arg_type ~summary
-      (f : Rpc_async.T.rpcfn -> 'a -> n:int -> string Deferred.t) =
+      (f : Rpc_async.T.rpcfn -> 'a -> n:int -> c:int -> string Deferred.t) =
     let arg_flag = sprintf "-%s" arg_name in
     Command.async ~summary
       (let%map_open.Command arg = flag arg_flag (required arg_type) ~doc:""
        and n =
          flag "-n" (required int) ~doc:"Number of times to call the function"
+        and c =
+         flag "-c" (optional_with_default 50 int) ~doc:"Maximum concurrent calls"
        and host =
          flag "-host"
            (optional_with_default "localhost" string)
@@ -59,7 +61,7 @@ module Time = struct
            (optional_with_default 8000 int)
            ~doc:" Port of target rpc server (default 8000)"
        in
-       fun () -> call_and_print_with_arg ~host ~port (f ~n) arg)
+       fun () -> call_and_print_with_arg ~host ~port (f ~n ~c) arg)
 
   let lookup =
     create_time_cmd ~arg_name:"item-number" ~arg_type:Command.Param.int
