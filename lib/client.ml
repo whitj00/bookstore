@@ -28,13 +28,30 @@ let remote_rpc ~host ~port rpc =
   | Ok response_str -> return (Xmlrpc.response_of_string response_str)
 
 let create_remote_rpc ~host ~port = remote_rpc ~host ~port
+let with_result rpc_call rpc arg ~f = rpc_call rpc arg >>>= f
 
-let get_result rpc_call to_str rpc arg =
-  rpc_call rpc arg >>>= function
-  | Ok result -> return (to_str result)
-  | Error e ->
-      return (sprintf "RPC call failed: %s" (Util.string_of_default_error e))
+let get_result ?(to_str = fun _ -> "") ?(fail_on_error = false) =
+  with_result ~f:(function
+    | Ok result -> return (to_str result)
+    | Error e -> (
+        sprintf "RPC call failed: %s" (Util.string_of_default_error e)
+        |> match fail_on_error with true -> failwith | false -> return))
 
-let get_lookup_result = get_result lookup LookupResponse.to_string
-let get_search_result = get_result search SearchResponse.to_string
-let get_buy_result = get_result buy BuyResponse.to_string
+module Main = struct
+  let lookup = get_result lookup ~to_str:LookupResponse.to_string
+  let search = get_result search ~to_str:SearchResponse.to_string
+  let buy = get_result buy ~to_str:BuyResponse.to_string
+end
+
+module Time = struct
+  let time_n_calls_to_get_result rpc_fn arg ~call ~n =
+    let f _ = arg |> (get_result call) rpc_fn in
+    let start = Time.now () in
+    let%bind _ = Deferred.List.init n ~f in
+    let finish = Time.now () in
+    Time.diff finish start |> Time.Span.to_string_hum |> return
+
+  let lookup = time_n_calls_to_get_result ~call:lookup
+  let search = time_n_calls_to_get_result ~call:search
+  let buy = time_n_calls_to_get_result ~call:buy
+end
