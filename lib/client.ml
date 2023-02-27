@@ -4,7 +4,7 @@ open! Core
 open Async
 open Cohttp
 open Cohttp_async
-include BookstoreAPI (GenClient ())
+module ClientAPI = BookstoreAPI (GenClient ())
 
 let ( >>>= ) x f = x |> T.get >>= f
 
@@ -29,18 +29,17 @@ let remote_rpc ~host ~port rpc =
 
 let create_remote_rpc ~host ~port = remote_rpc ~host ~port
 
-
 module Main = struct
   let get_result ~to_str rpc_call rpc arg =
     (* If not specified, return an empty response *)
     rpc_call rpc arg >>>= function
     | Ok result -> return (to_str result)
-    | Error e -> (
-        sprintf "RPC call failed: %s" (Util.string_of_default_error e)
-        |>return)
-  let lookup = get_result lookup ~to_str:LookupResponse.to_string 
-  let search = get_result search ~to_str:SearchResponse.to_string 
-  let buy = get_result buy ~to_str:BuyResponse.to_string
+    | Error e ->
+        sprintf "RPC call failed: %s" (Util.string_of_default_error e) |> return
+
+  let lookup = get_result ClientAPI.lookup ~to_str:LookupResponse.to_string
+  let search = get_result ClientAPI.search ~to_str:SearchResponse.to_string
+  let buy = get_result ClientAPI.buy ~to_str:BuyResponse.to_string
 end
 
 module Time = struct
@@ -48,11 +47,11 @@ module Time = struct
     (* If not specified, return an empty response *)
     rpc_call rpc arg >>>= function
     | Ok _ -> return ()
-    | Error e -> (
+    | Error e ->
         sprintf "RPC call failed: %s" (Util.string_of_default_error e)
-        |>failwith)
+        |> failwith
 
-  let time_n_calls rpc_fn arg ~call ~n ~c =
+  let time_n_calls call rpc_fn arg ~n ~c =
     let f _ = ignore_success call rpc_fn arg in
     let start = Time.now () in
     let how = `Max_concurrent_jobs c in
@@ -60,7 +59,7 @@ module Time = struct
     let finish = Time.now () in
     Time.diff finish start |> Time.Span.to_string_hum |> return
 
-  let lookup = time_n_calls ~call:lookup
-  let search = time_n_calls ~call:search
-  let buy = time_n_calls ~call:buy
+  let lookup = time_n_calls ClientAPI.lookup
+  let search = time_n_calls ClientAPI.search
+  let buy = time_n_calls ClientAPI.buy
 end

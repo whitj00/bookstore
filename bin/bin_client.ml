@@ -9,9 +9,9 @@ let call_and_print_with_arg fn arg ~host ~port =
 
 module Main = struct
   let create_cmd ~arg_name ~arg_type ~summary f =
-    let arg_flag = sprintf "-%s" arg_name in
     Command.async ~summary
-      (let%map_open.Command arg = flag arg_flag (required arg_type) ~doc:""
+      (let%map_open.Command arg =
+         flag (sprintf "-%s" arg_name) (required arg_type) ~doc:""
        and host =
          flag "-host"
            (optional_with_default "localhost" string)
@@ -43,6 +43,9 @@ module Main = struct
 end
 
 module Time = struct
+  (* All of our time functions call an API with one parameter, n calls, a
+     maximum concurrency, and a host and a port. This helper function creates a
+     CLI command to time a specific function in [Client.Time] *)
   let create_time_cmd ~arg_name ~arg_type ~summary
       (f : Rpc_async.T.rpcfn -> 'a -> n:int -> c:int -> string Deferred.t) =
     let arg_flag = sprintf "-%s" arg_name in
@@ -50,8 +53,10 @@ module Time = struct
       (let%map_open.Command arg = flag arg_flag (required arg_type) ~doc:""
        and n =
          flag "-n" (required int) ~doc:"Number of times to call the function"
-        and c =
-         flag "-c" (optional_with_default 50 int) ~doc:"Maximum concurrent calls"
+       and c =
+         flag "-c"
+           (optional_with_default 50 int)
+           ~doc:"Maximum concurrent calls"
        and host =
          flag "-host"
            (optional_with_default "localhost" string)
