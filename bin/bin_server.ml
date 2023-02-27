@@ -8,10 +8,11 @@ let start_cmd ~pool =
        flag "-port"
          (optional_with_default 8000 int)
          ~doc:" Port (Default: 8000)"
+         and daemon = flag "-daemon" no_arg ~doc:"run as daemon"
      in
      fun () ->
        let () = print_endline "Starting server..." in
-       let%bind _ = Server.start ~pool ~port () in
+       let%bind _ = Server.start ~pool ~port ~daemon () in
        return ())
 
 let logs_cmd ~pool =

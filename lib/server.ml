@@ -13,7 +13,7 @@ let lookup ~pool item_number =
     | None ->
         Error (Idl.DefaultError.InternalError "Not found") |> Deferred.return
   in
-  T.put lookup_async
+  Rpc_async.T.put lookup_async
 
 let search ~pool search_query =
   let search_async =
@@ -24,14 +24,14 @@ let search ~pool search_query =
     in
     return (Ok records)
   in
-  T.put search_async
+  Rpc_async.T.put search_async
 
 let buy ~pool item_number =
   let lookup_async =
     let%bind success, message = Db.Client.buy_book ~pool item_number in
     return (Ok { BuyResponse.success; message })
   in
-  T.put lookup_async
+  Rpc_async.T.put lookup_async
 
 let serve process_fn ~port =
   let where_to_listen = Tcp.Where_to_listen.of_port port in
@@ -47,7 +47,11 @@ let rpc ~pool =
   Interface.buy (buy ~pool);
   server Interface.implementation
 
-let start ~pool ~port () =
+let start ~pool ~port ?(daemon=false) () =
+  let () = match daemon with
+  | true -> Daemon.daemonize ~redirect_stdout:`Do_not_redirect ~cd:(Core_unix.getcwd ()) ()
+  | false -> ()
+  in
   let process ~body _a _r =
     let open Deferred.Let_syntax in
     let%bind request = Body.to_string body >>| Xmlrpc.call_of_string in
