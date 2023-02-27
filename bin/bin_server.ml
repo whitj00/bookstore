@@ -37,11 +37,13 @@ let update_price_cmd ~pool =
        | false -> printf "Book %d not found\n" id)
 
 let restock_cmd ~pool =
-  Command.async ~summary:"Increases the stock of a book by [n]"
+  Command.async ~summary:"Increases the stock of a book"
     (let%map_open.Command id =
        flag "-item-number" (required int) ~doc:"item Item to restock"
      and n =
-       flag "-n" (optional_with_default 5 int) ~doc:"count Number of items to add (default = 5)"
+       flag "-n"
+         (optional_with_default 5 int)
+         ~doc:"count Number of items to add (default = 5)"
      in
      fun () ->
        let%map result = Db.Server.update_stock ~pool id n in
@@ -59,5 +61,4 @@ let commands =
       ("restock", restock_cmd ~pool);
     ]
   in
-  Command.group subcommands
-    ~summary:"Run and manage a server"
+  Command.group subcommands ~summary:"Run and manage a server"

@@ -3,7 +3,7 @@ open Async
 open Bookstore
 
 let call_and_print_with_arg fn arg ~host ~port =
-  let rpc_fn = Client.create_remote_rpc ~host ~port in
+  let rpc_fn = Client.Rpc.create_remote_rpc ~host ~port in
   let%bind result = fn rpc_fn arg in
   print_endline result |> return
 
@@ -15,11 +15,11 @@ module Main = struct
        and host =
          flag "-host"
            (optional_with_default "localhost" string)
-           ~doc:" Host of target rpc server (default localhost)"
+           ~doc:"host Host of target rpc server (default localhost)"
        and port =
          flag "-port"
            (optional_with_default 8000 int)
-           ~doc:" Port of target rpc server (default 8000)"
+           ~doc:"port Port of target rpc server (default 8000)"
        in
        fun () -> call_and_print_with_arg ~host ~port f arg)
 
@@ -52,33 +52,33 @@ module Time = struct
     Command.async ~summary
       (let%map_open.Command arg = flag arg_flag (required arg_type) ~doc:""
        and n =
-         flag "-n" (required int) ~doc:"Number of times to call the function"
+         flag "-n" (required int) ~doc:"count Number of times to call the function"
        and c =
          flag "-c"
            (optional_with_default 50 int)
-           ~doc:"Maximum concurrent calls"
+           ~doc:"max Maximum concurrent calls (default = 50)"
        and host =
          flag "-host"
            (optional_with_default "localhost" string)
-           ~doc:" Host of target rpc server (default localhost)"
+           ~doc:"host Host of target rpc server (default localhost)"
        and port =
          flag "-port"
            (optional_with_default 8000 int)
-           ~doc:" Port of target rpc server (default 8000)"
+           ~doc:"port Port of target rpc server (default 8000)"
        in
        fun () -> call_and_print_with_arg ~host ~port (f ~n ~c) arg)
 
   let lookup =
     create_time_cmd ~arg_name:"item-number" ~arg_type:Command.Param.int
-      ~summary:"Time the lookup command" Client.Time.lookup
+      ~summary:"Time the lookup command" Client.Time.test_lookup
 
   let search =
     create_time_cmd ~arg_name:"topic" ~arg_type:Command.Param.string
-      ~summary:"Time the search command" Client.Time.search
+      ~summary:"Time the search command" Client.Time.test_search
 
   let buy =
     create_time_cmd ~arg_name:"item-number" ~arg_type:Command.Param.int
-      ~summary:"Time the buy command" Client.Time.buy
+      ~summary:"Time the buy command" Client.Time.test_buy
 
   let commands =
     [ ("lookup", lookup); ("search", search); ("buy", buy) ]

@@ -8,26 +8,28 @@ module ClientAPI = BookstoreAPI (GenClient ())
 
 let ( >>>= ) x f = x |> T.get >>= f
 
-let get_response ~host ~port ~body =
-  let%bind response, body =
-    Cohttp_async.Client.post ~body (Uri.make ~host ~port ~path:"/" ())
-  in
-  let code = Response.status response |> Code.code_of_status in
-  match code with
-  | 200 ->
-      let%bind body = Cohttp_async.Body.to_string body in
-      return (Ok body)
-  | _ -> return (Error (sprintf "HTTP error %d" code))
+module Rpc = struct
+  let get_response ~host ~port ~body =
+    let%bind response, body =
+      Cohttp_async.Client.post ~body (Uri.make ~host ~port ~path:"/" ())
+    in
+    let code = Response.status response |> Code.code_of_status in
+    match code with
+    | 200 ->
+        let%bind body = Cohttp_async.Body.to_string body in
+        return (Ok body)
+    | _ -> return (Error (sprintf "HTTP error %d" code))
 
-let remote_rpc ~host ~port rpc =
-  let call = Xmlrpc.string_of_call rpc in
-  let body = Body.of_string call in
-  let%bind response = get_response ~host ~port ~body in
-  match response with
-  | Error e -> failwith e
-  | Ok response_str -> return (Xmlrpc.response_of_string response_str)
+  let remote_rpc ~host ~port rpc =
+    let call = Xmlrpc.string_of_call rpc in
+    let body = Body.of_string call in
+    let%bind response = get_response ~host ~port ~body in
+    match response with
+    | Error e -> failwith e
+    | Ok response_str -> return (Xmlrpc.response_of_string response_str)
 
-let create_remote_rpc ~host ~port = remote_rpc ~host ~port
+  let create_remote_rpc ~host ~port = remote_rpc ~host ~port
+end
 
 module Main = struct
   let get_result ~to_str rpc_call rpc arg =
@@ -59,7 +61,7 @@ module Time = struct
     let finish = Time.now () in
     Time.diff finish start |> Time.Span.to_string_hum |> return
 
-  let lookup = time_n_calls ClientAPI.lookup
-  let search = time_n_calls ClientAPI.search
-  let buy = time_n_calls ClientAPI.buy
+  let test_lookup = time_n_calls ClientAPI.lookup
+  let test_search = time_n_calls ClientAPI.search
+  let test_buy = time_n_calls ClientAPI.buy
 end
