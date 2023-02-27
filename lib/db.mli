@@ -149,5 +149,6 @@ module Server : sig
         `Response_rejected ] )
       Caqti_async.Pool.t ->
     int ->
+    int ->
     bool Async_kernel__Types.Deferred.t
 end

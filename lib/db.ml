@@ -208,12 +208,14 @@ module Server = struct
     in
     some_or_error ~pool query'
 
-  let update_stock ~pool id =
+  let update_stock ~pool id amount =
     let query =
       let open Caqti_request.Infix in
-      Caqti_type.(int -->! bool)
-      @:- "UPDATE BOOKS SET STOCK = STOCK + 5 WHERE ID = ? RETURNING id"
+      Caqti_type.(tup2 int int -->! bool)
+      @:- "UPDATE BOOKS SET STOCK = STOCK + ? WHERE ID = ? RETURNING id"
     in
-    let query' (module C : Caqti_async.CONNECTION) = C.find_opt query id in
+    let query' (module C : Caqti_async.CONNECTION) =
+      C.find_opt query (amount, id)
+    in
     some_or_error ~pool query'
 end
