@@ -60,4 +60,4 @@ let commands =
     ]
   in
   Command.group subcommands
-    ~summary:"Database manipulation commands for development"
+    ~summary:"Run and manage a server"
