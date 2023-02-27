@@ -52,7 +52,8 @@ module Time = struct
     Command.async ~summary
       (let%map_open.Command arg = flag arg_flag (required arg_type) ~doc:""
        and n =
-         flag "-n" (required int) ~doc:"count Number of times to call the function"
+         flag "-n" (required int)
+           ~doc:"count Number of times to call the function"
        and c =
          flag "-c"
            (optional_with_default 50 int)
