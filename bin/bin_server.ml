@@ -28,8 +28,8 @@ let logs_cmd ~pool =
 let update_price_cmd ~pool =
   Command.async ~summary:"Updates the price of a book"
     (let%map_open.Command id =
-       flag "-item-number" (required int) ~doc:"item number"
-     and price = flag "-price" (required float) ~doc:"price" in
+       flag "-item-number" (required int) ~doc:"item Item number"
+     and price = flag "-price" (required float) ~doc:"price New price" in
      fun () ->
        let%map result = Db.Server.update_price ~pool price id in
        match result with
@@ -39,14 +39,14 @@ let update_price_cmd ~pool =
 let restock_cmd ~pool =
   Command.async ~summary:"Increases the stock of a book by [n]"
     (let%map_open.Command id =
-       flag "-item-number" (required int) ~doc:" Item to restock"
+       flag "-item-number" (required int) ~doc:"item Item to restock"
      and n =
-       flag "-n" (optional_with_default 5 int) ~doc:"Number of items to add"
+       flag "-n" (optional_with_default 5 int) ~doc:"count Number of items to add (default = 5)"
      in
      fun () ->
        let%map result = Db.Server.update_stock ~pool id n in
        match result with
-       | true -> print_endline "Added 5 books to stock"
+       | true -> print_endline (sprintf "Added %d books to stock" n)
        | false -> printf "Book %d not found\n" id)
 
 let commands =
