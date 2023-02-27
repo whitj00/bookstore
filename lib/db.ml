@@ -15,6 +15,8 @@ let some_or_error ~pool query =
   | Ok x -> Option.is_some x |> return
   | Error e -> Caqti_error.show e |> failwith
 
+let tup5 p1 p2 p3 p4 p5 = Caqti_type.(tup2 (tup4 p1 p2 p3 p4) p5)
+
 module Connection = struct
   let default =
     [ "sqlite3:///"; Core_unix.getcwd (); "/test.db?create=true" ]
@@ -51,7 +53,7 @@ module Util = struct
   let add_row ~pool (id, title, topic, stock, price) =
     let query =
       let open Caqti_request.Infix in
-      Caqti_type.(tup2 (tup4 int string string int) float -->. unit)
+      Caqti_type.(tup5 int string string int float -->. unit)
       @:- "INSERT INTO books (ID,TITLE,TOPIC,STOCK,PRICE) VALUES (?,?,?,?,?)"
     in
     let query' (module C : Caqti_async.CONNECTION) =
