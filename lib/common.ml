@@ -71,8 +71,3 @@ module BookstoreAPI (R : Idl.RPC) = struct
       [ "Buy a book by item number" ]
       (int_p "item_number" @-> returning buy_response_p e1)
 end
-
-module M = Idl.IdM
-(* You can easily put ExnM here and the code would stay unchanged *)
-
-module MyIdl = Idl.Make (M)

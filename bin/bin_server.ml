@@ -2,17 +2,20 @@ open! Core
 open Async
 open Bookstore
 
+let daemonize =
+  Daemon.daemonize ~redirect_stdout:`Do_not_redirect ~cd:(Core_unix.getcwd ())
+
 let start_cmd ~pool =
   Command.async ~summary:"Start an server"
     (let%map_open.Command port =
        flag "-port"
          (optional_with_default 8000 int)
          ~doc:" Port (Default: 8000)"
-         and daemon = flag "-daemon" no_arg ~doc:"run as daemon"
-     in
+     and daemon = flag "-daemon" no_arg ~doc:"run as daemon" in
      fun () ->
        let () = print_endline "Starting server..." in
-       let%bind _ = Server.start ~pool ~port ~daemon () in
+       let () = if daemon then daemonize () in
+       let%bind _ = Server.start ~pool ~port () in
        return ())
 
 let logs_cmd ~pool =
