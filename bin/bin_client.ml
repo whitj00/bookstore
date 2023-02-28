@@ -3,7 +3,7 @@ open Async
 open Bookstore
 open Common
 
-let call_and_print_with_arg fn arg ~host ~port =
+let call_rpc_and_print ~host ~port fn arg =
   let rpc_fn = Client.Rpc.create_remote_rpc ~host ~port in
   let%bind result = fn rpc_fn arg in
   print_endline result |> return
@@ -15,7 +15,7 @@ module Main = struct
          flag (sprintf "-%s" arg_name) (required arg_type) ~doc:""
        and host = host_flag
        and port = port_flag in
-       fun () -> call_and_print_with_arg ~host ~port f arg)
+       fun () -> call_rpc_and_print ~host ~port f arg)
 
   let lookup_cmd =
     create_cmd ~arg_name:"item-number" ~arg_type:int
@@ -40,8 +40,7 @@ module Time = struct
   (* All of our time functions call an API with one parameter, n calls, a
      maximum concurrency, and a host and a port. This helper function creates a
      CLI command to time a specific function in [Client.Time] *)
-  let create_time_cmd method_name arg_name arg_type
-      (f : Rpc_async.T.rpcfn -> 'a -> n:int -> c:int -> string Deferred.t) =
+  let create_time_cmd method_name arg_name arg_type f =
     let arg_flag = sprintf "-%s" arg_name in
     let summary = sprintf "Time the %s command" method_name in
     let command =
@@ -57,18 +56,22 @@ module Time = struct
              (optional_with_default 50 int)
              ~doc:"max Maximum concurrent calls (default = 50)"
          in
-         fun () -> call_and_print_with_arg ~host ~port (f ~n ~c) arg)
+         fun () -> call_rpc_and_print ~host ~port (f ~n ~c) arg)
     in
     (method_name, command)
 
-  let lookup =
+  let time_lookup =
     create_time_cmd "lookup" "item-number" int Client.Time.test_lookup
 
-  let search = create_time_cmd "search" "topic" string Client.Time.test_search
-  let buy = create_time_cmd "buy" "item-number" int Client.Time.test_buy
+  let time_search =
+    create_time_cmd "search" "topic" string Client.Time.test_search
+
+  let time_buy = create_time_cmd "buy" "item-number" int Client.Time.test_buy
 
   let commands =
-    [ lookup; search; buy ] |> Command.group ~summary:"Time RPC calls"
+    Command.group
+      [ time_lookup; time_search; time_buy ]
+      ~summary:"Time RPC calls"
 end
 
 let commands =

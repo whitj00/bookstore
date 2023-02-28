@@ -20,15 +20,16 @@ module Rpc = struct
         return (Ok body)
     | _ -> return (Error (sprintf "HTTP error %d" code))
 
-  let remote_rpc ~host ~port rpc =
-    let call = Xmlrpc.string_of_call rpc in
-    let body = Body.of_string call in
-    let%bind response = get_response ~host ~port ~body in
-    match response with
-    | Error e -> failwith e
-    | Ok response_str -> return (Xmlrpc.response_of_string response_str)
-
-  let create_remote_rpc ~host ~port = remote_rpc ~host ~port
+  let create_remote_rpc ~host ~port =
+    let remote_rpc call =
+      let call = Xmlrpc.string_of_call call in
+      let body = Body.of_string call in
+      let%bind response = get_response ~host ~port ~body in
+      match response with
+      | Error e -> failwith e
+      | Ok response_str -> return (Xmlrpc.response_of_string response_str)
+    in
+    remote_rpc
 end
 
 module Main = struct
@@ -53,7 +54,7 @@ module Time = struct
         sprintf "RPC call failed: %s" (Util.string_of_default_error e)
         |> failwith
 
-  let time_n_calls call rpc_fn arg ~n ~c =
+  let time_n_calls call ~n ~c rpc_fn arg =
     let f _ = ignore_success call rpc_fn arg in
     let start = Time.now () in
     let how = `Max_concurrent_jobs c in
