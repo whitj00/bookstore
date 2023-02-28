@@ -148,13 +148,11 @@ module Client = struct
   let buy_book ~pool item_number =
     let output_query =
       let open Caqti_request.Infix in
-      Caqti_type.(tup3 int int int -->! tup2 bool string)
-      @:- "SELECT (CASE WHEN EXISTS (SELECT * FROM books where id = ? and \
-           stock >= 1) THEN true ELSE false END) as success, (CASE WHEN NOT \
-           EXISTS (SELECT * FROM books where id = ?) THEN 'No book found with \
-           given item_number' WHEN NOT EXISTS (SELECT * FROM books where id = \
-           ? and STOCK > 0) THEN 'Out of stock' ELSE 'Purchase Successful' \
-           END) as message"
+      Caqti_type.(tup3 int int int -->! string)
+      @:- "SELECT (CASE WHEN NOT EXISTS (SELECT * FROM books where id = ?) \
+           THEN 'No book found with given item_number' WHEN NOT EXISTS (SELECT \
+           * FROM books where id = ? and STOCK > 0) THEN 'Out of stock' ELSE \
+           '' END) as message"
     in
     let update_query =
       let open Caqti_request.Infix in
@@ -167,21 +165,25 @@ module Client = struct
       Caqti_type.(tup2 int float -->. unit)
       @:- "INSERT INTO purchases (item_number, price) VALUES (?, ?)"
     in
+
     let query' (module C : Caqti_async.CONNECTION) =
+      let open Deferred.Result.Let_syntax in
       C.with_transaction (fun () ->
-          let%bind.Deferred.Result success, message =
+          let%bind.Deferred.Result error_message =
             C.find output_query (item_number, item_number, item_number)
           in
-          match success with
-          | false -> return (Ok (success, message))
+          match String.equal error_message "" with
+          | false -> return (false, error_message)
           | true ->
-              let%bind.Deferred.Result price =
-                C.find update_query item_number
+              let open Deferred.Result.Let_syntax in
+              let%bind price = C.find update_query item_number in
+              let%bind rows =
+                C.exec_with_affected_count insert_query (item_number, price)
               in
-              let%bind.Deferred.Result () =
-                C.exec insert_query (item_number, price)
-              in
-              return (Ok (success, message)))
+              return
+                (match rows with
+                | 1 -> (true, "Purchase Successful")
+                | _ -> (false, "Unknown Error")))
     in
     or_error ~pool query'
 end
