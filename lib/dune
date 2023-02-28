@@ -8,7 +8,6 @@
   cohttp
   cohttp-async
   caqti-async
-  caqti-driver-sqlite3
-  core_unix.daemon)
+  caqti-driver-sqlite3)
  (preprocess
   (pps ppx_let ppx_deriving_rpc ppx_sexp_conv)))
