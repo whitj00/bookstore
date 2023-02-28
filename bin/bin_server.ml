@@ -1,16 +1,14 @@
 open! Core
 open Async
 open Bookstore
+open Common
 
 let daemonize =
   Daemon.daemonize ~redirect_stdout:`Do_not_redirect ~cd:(Core_unix.getcwd ())
 
 let start_cmd ~pool =
   Command.async ~summary:"Start an server"
-    (let%map_open.Command port =
-       flag "-port"
-         (optional_with_default 8000 int)
-         ~doc:" Port (Default: 8000)"
+    (let%map_open.Command port = port_flag
      and daemon = flag "-daemon" no_arg ~doc:"run as daemon" in
      fun () ->
        let () = print_endline "Starting server..." in
@@ -43,7 +41,7 @@ let update_price_cmd ~pool =
 let restock_cmd ~pool =
   Command.async ~summary:"Increases the stock of a book"
     (let%map_open.Command id =
-       flag "-item-number" (required int) ~doc:"item Item to restock"
+       flag "-item-number" (required int) ~doc:"item Item number"
      and n =
        flag "-n"
          (optional_with_default 5 int)
