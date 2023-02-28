@@ -35,7 +35,7 @@ let insert_cmd ~pool =
        Deferred.unit)
 
 let db_commands =
-  let pool = Db.Connection.create_pool () in
+  let pool = Db.Connection_pool.create () in
   let subcommands =
     [
       ("create", create_cmd ~pool);

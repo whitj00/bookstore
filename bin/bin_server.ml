@@ -54,7 +54,7 @@ let restock_cmd ~pool =
        | false -> printf "Book %d not found\n" id)
 
 let commands =
-  let pool = Db.Connection.create_pool () in
+  let pool = Db.Connection_pool.create () in
   let subcommands =
     [
       ("start", start_cmd ~pool);

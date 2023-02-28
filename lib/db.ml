@@ -3,7 +3,23 @@ open! Async
 open! Caqti_async
 open! Caqti_driver_sqlite3
 
-let or_error ~pool query =
+let tup5 p1 p2 p3 p4 p5 = Caqti_type.(tup2 (tup4 p1 p2 p3 p4) p5)
+
+module Connection_pool = struct
+  type t = ((module Caqti_async.CONNECTION), Caqti_error.t) Caqti_async.Pool.t
+
+  let default =
+    [ "sqlite3:///"; Core_unix.getcwd (); "/test.db?create=true" ]
+    |> String.concat
+
+  let create ?uri () =
+    let uri = Option.value uri ~default in
+    match Caqti_async.connect_pool ~max_size:20 (Uri.of_string uri) with
+    | Ok pool -> pool
+    | Error err -> failwith (Caqti_error.show err)
+end
+
+let or_error ~(pool : Connection_pool.t) query =
   let%bind result = Caqti_async.Pool.use query pool in
   match result with
   | Ok x -> return x
@@ -15,23 +31,9 @@ let some_or_error ~pool query =
   | Ok x -> Option.is_some x |> return
   | Error e -> Caqti_error.show e |> failwith
 
-let tup5 p1 p2 p3 p4 p5 = Caqti_type.(tup2 (tup4 p1 p2 p3 p4) p5)
-
-module Connection = struct
-  let default =
-    [ "sqlite3:///"; Core_unix.getcwd (); "/test.db?create=true" ]
-    |> String.concat
-
-  let create_pool ?uri () =
-    let uri = Option.value uri ~default in
-    match Caqti_async.connect_pool ~max_size:20 (Uri.of_string uri) with
-    | Ok pool -> pool
-    | Error err -> failwith (Caqti_error.show err)
-
-  let exec_unit_no_args ~pool query =
-    let query' (module C : Caqti_async.CONNECTION) = C.exec query () in
-    or_error query' ~pool
-end
+let exec_unit_no_args ~pool query =
+  let query' (module C : Caqti_async.CONNECTION) = C.exec query () in
+  or_error query' ~pool
 
 module Util = struct
   let initial_books =
@@ -73,7 +75,7 @@ module Util = struct
           \      PRICE FLOAT NOT NULL\n\
           \    );"
     in
-    let%bind () = Connection.exec_unit_no_args ~pool query in
+    let%bind () = exec_unit_no_args ~pool query in
     Deferred.List.iter initial_books ~f:(fun book -> add_row ~pool book)
 
   let create_purchases_table ~pool () =
@@ -87,21 +89,21 @@ module Util = struct
           \      item_number INTEGER\n\
           \    );"
     in
-    Connection.exec_unit_no_args ~pool query
+    exec_unit_no_args ~pool query
 
   let drop_books_table ~pool () =
     let query =
       let open Caqti_request.Infix in
       Caqti_type.(unit -->. unit) @:- "DROP TABLE IF EXISTS BOOKS;"
     in
-    Connection.exec_unit_no_args ~pool query
+    exec_unit_no_args ~pool query
 
   let drop_purchases_table ~pool () =
     let query =
       let open Caqti_request.Infix in
       Caqti_type.(unit -->. unit) @:- "DROP TABLE IF EXISTS PURCHASES;"
     in
-    Connection.exec_unit_no_args ~pool query
+    exec_unit_no_args ~pool query
 
   let create_tables ~pool () =
     let%bind () = create_books_table ~pool () in

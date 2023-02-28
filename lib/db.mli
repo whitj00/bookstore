@@ -1,154 +1,40 @@
-module Connection : sig
-  val create_pool :
-    ?uri:string ->
-    unit ->
-    (Caqti_async.connection, [> Caqti_error.connect ]) Caqti_async.Pool.t
+open Async
+
+module Connection_pool : sig
+  type t
+
+  val create : ?uri:string -> unit -> t
 end
 
 module Util : sig
-  val create_tables :
-    pool:
-      ( (module Caqti_async.CONNECTION),
-        [< Caqti_error.t > `Decode_rejected
-        `Encode_failed
-        `Encode_rejected
-        `Request_failed
-        `Request_rejected
-        `Response_failed
-        `Response_rejected ] )
-      Caqti_async.Pool.t ->
-    unit ->
-    unit Async.Deferred.t
-
-  val drop_tables :
-    pool:
-      ( (module Caqti_async.CONNECTION),
-        [< Caqti_error.t > `Decode_rejected
-        `Encode_failed
-        `Encode_rejected
-        `Request_failed
-        `Request_rejected
-        `Response_failed
-        `Response_rejected ] )
-      Caqti_async.Pool.t ->
-    unit ->
-    unit Async.Deferred.t
-
-  val reset_tables :
-    pool:
-      ( (module Caqti_async.CONNECTION),
-        [< Caqti_error.t > `Decode_rejected
-        `Encode_failed
-        `Encode_rejected
-        `Request_failed
-        `Request_rejected
-        `Response_failed
-        `Response_rejected ] )
-      Caqti_async.Pool.t ->
-    unit ->
-    unit Async.Deferred.t
+  val create_tables : pool:Connection_pool.t -> unit -> unit Deferred.t
+  val drop_tables : pool:Connection_pool.t -> unit -> unit Deferred.t
+  val reset_tables : pool:Connection_pool.t -> unit -> unit Deferred.t
 
   val add_row :
-    pool:
-      ( (module Caqti_async.CONNECTION),
-        [< Caqti_error.t > `Decode_rejected
-        `Encode_failed
-        `Encode_rejected
-        `Request_failed
-        `Request_rejected
-        `Response_failed
-        `Response_rejected ] )
-      Caqti_async.Pool.t ->
+    pool:Connection_pool.t ->
     int * string * string * int * float ->
-    unit Async.Deferred.t
+    unit Deferred.t
 end
 
 module Client : sig
   val lookup_book :
-    pool:
-      ( (module Caqti_async.CONNECTION),
-        [< Caqti_error.t > `Decode_rejected
-        `Encode_failed
-        `Encode_rejected
-        `Request_failed
-        `Request_rejected
-        `Response_failed
-        `Response_rejected ] )
-      Caqti_async.Pool.t ->
+    pool:Connection_pool.t ->
     int ->
-    (string * string * int * float) option Async_kernel__Types.Deferred.t
+    (string * string * int * float) option Deferred.t
 
   val search_book :
-    pool:
-      ( (module Caqti_async.CONNECTION),
-        [< Caqti_error.t > `Decode_rejected
-        `Encode_failed
-        `Encode_rejected
-        `Request_failed
-        `Request_rejected
-        `Response_failed
-        `Response_rejected ] )
-      Caqti_async.Pool.t ->
-    string ->
-    (int * string) list Async_kernel__Types.Deferred.t
+    pool:Connection_pool.t -> string -> (int * string) list Deferred.t
 
-  val buy_book :
-    pool:
-      ( (module Caqti_async.CONNECTION),
-        [< Caqti_error.t > `Decode_rejected
-        `Encode_failed
-        `Encode_rejected
-        `Request_failed
-        `Request_rejected
-        `Response_failed
-        `Response_rejected ] )
-      Caqti_async.Pool.t ->
-    int ->
-    (bool * string) Async_kernel__Types.Deferred.t
+  val buy_book : pool:Connection_pool.t -> int -> (bool * string) Deferred.t
 end
 
 module Server : sig
   val get_purchases :
-    pool:
-      ( (module Caqti_async.CONNECTION),
-        [< Caqti_error.t > `Decode_rejected
-        `Encode_failed
-        `Encode_rejected
-        `Request_failed
-        `Request_rejected
-        `Response_failed
-        `Response_rejected ] )
-      Caqti_async.Pool.t ->
+    pool:Connection_pool.t ->
     unit ->
-    (int * string * float * int) list Async_kernel__Types.Deferred.t
+    (int * string * float * int) list Deferred.t
 
-  val update_price :
-    pool:
-      ( (module Caqti_async.CONNECTION),
-        [< Caqti_error.t > `Decode_rejected
-        `Encode_failed
-        `Encode_rejected
-        `Request_failed
-        `Request_rejected
-        `Response_failed
-        `Response_rejected ] )
-      Caqti_async.Pool.t ->
-    float ->
-    int ->
-    bool Async_kernel__Types.Deferred.t
-
-  val update_stock :
-    pool:
-      ( (module Caqti_async.CONNECTION),
-        [< Caqti_error.t > `Decode_rejected
-        `Encode_failed
-        `Encode_rejected
-        `Request_failed
-        `Request_rejected
-        `Response_failed
-        `Response_rejected ] )
-      Caqti_async.Pool.t ->
-    int ->
-    int ->
-    bool Async_kernel__Types.Deferred.t
+  val update_price : pool:Connection_pool.t -> float -> int -> bool Deferred.t
+  val update_stock : pool:Connection_pool.t -> int -> int -> bool Deferred.t
 end
