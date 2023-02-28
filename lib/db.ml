@@ -4,7 +4,6 @@ open! Caqti_async
 open! Caqti_driver_sqlite3
 
 let tup5 p1 p2 p3 p4 p5 = Caqti_type.(tup2 (tup4 p1 p2 p3 p4) p5)
-
 let caqti_fail e = failwith (Caqti_error.show e)
 
 module Connection_pool = struct
@@ -23,15 +22,11 @@ end
 
 let or_error ~(pool : Connection_pool.t) query =
   let%bind result = Caqti_async.Pool.use query pool in
-  match result with
-  | Ok x -> return x
-  | Error e -> caqti_fail e
+  match result with Ok x -> return x | Error e -> caqti_fail e
 
 let some_or_error ~pool query =
   let%bind result = Caqti_async.Pool.use query pool in
-  match result with
-  | Ok x -> return (is_some x)
-  | Error e -> caqti_fail e
+  match result with Ok x -> return (is_some x) | Error e -> caqti_fail e
 
 let exec_unit_no_args ~pool query =
   let query' (module C : Caqti_async.CONNECTION) = C.exec query () in
