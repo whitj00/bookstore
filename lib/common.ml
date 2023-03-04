@@ -26,12 +26,9 @@ module LookupResponse = struct
 end
 
 module BuyResponse = struct
-  type t = { success : bool; message : string } [@@deriving rpcty]
+  type t = unit [@@deriving rpcty]
 
-  let to_string t =
-    match t with
-    | { success = true; _ } -> "Purchase successful\n"
-    | { success = false; message } -> sprintf "Purchase failed: %s\n" message
+  let to_string _t =  "Purchase successful\n"
 end
 
 module BookstoreAPI (R : Idl.RPC) = struct
