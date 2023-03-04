@@ -9,7 +9,7 @@ def get_result(result):
 
 def castable_to_int(value):
     try:
-        _ = int(value)
+        int(value)
         return True
     except ValueError:
         return False
@@ -19,13 +19,13 @@ def search(proxy, topic):
 
 def lookup(proxy, item_number):
     if(castable_to_int(item_number) == False):
-        print("Invalid argument. Please try again.")
+        print("Argument must be an integer. Please try again.")
     else:
         get_result(proxy.lookup({"item_number": int(item_number)}))
 
 def buy(proxy, item_number):
     if(castable_to_int(item_number) == False):
-        print("Invalid argument. Please try again.")
+        print("Argument must be an integer. Please try again.")
     else:
         get_result(proxy.buy({"item_number": int(item_number)}))
 
