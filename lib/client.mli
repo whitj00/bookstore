@@ -17,3 +17,7 @@ module Time : sig
   val test_search : n:int -> c:int -> T.rpcfn -> string -> string Deferred.t
   val test_lookup : n:int -> c:int -> T.rpcfn -> int -> string Deferred.t
 end
+
+module Repl : sig
+  val start : T.rpcfn -> unit Deferred.t
+end

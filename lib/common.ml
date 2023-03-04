@@ -28,7 +28,7 @@ end
 module BuyResponse = struct
   type t = unit [@@deriving rpcty]
 
-  let to_string _t =  "Purchase successful\n"
+  let to_string _t = "Purchase successful\n"
 end
 
 module BookstoreAPI (R : Idl.RPC) = struct

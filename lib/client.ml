@@ -66,3 +66,68 @@ module Time = struct
   let test_search = time_n_calls ClientAPI.search
   let test_buy = time_n_calls ClientAPI.buy
 end
+
+module Repl = struct
+  let with_item_number arg ~f =
+    match int_of_string_opt arg with
+    | None -> print_endline "Invalid item number, must be an int" |> return
+    | Some item_number -> f item_number
+
+  let remove_prefix_and_suffix symbol arg  =
+    match String.lsplit2 arg ~on:symbol with
+    | Some ("", arg) -> (
+        match String.rsplit2 arg ~on:symbol with Some (arg, "") -> arg | _ -> arg)
+    | _ -> arg
+
+  let remove_quotes_if_exist arg =
+    let arg' = remove_prefix_and_suffix '"' arg in
+    remove_prefix_and_suffix '\'' arg'
+
+  let eval rpcfn cmd =
+    match String.lsplit2 cmd ~on:' ' with
+    | None ->
+        let () = print_endline "No argument found, please try again" in
+        Deferred.unit
+    | Some (cmd, arg) -> (
+        (* Remote quotation marks around arg, if they exist *)
+        let arg = remove_quotes_if_exist arg in
+        match cmd with
+        | "search" ->
+            let%bind result = Main.search rpcfn arg in
+            print_endline result |> return
+        | "lookup" ->
+            with_item_number arg ~f:(fun item_number ->
+                let%bind result = Main.lookup rpcfn item_number in
+                print_endline result |> return)
+        | "buy" ->
+            with_item_number arg ~f:(fun item_number ->
+                let%bind result = Main.buy rpcfn item_number in
+                print_endline result |> return)
+        | _ -> print_endline "Unknown command" |> return)
+
+  let rec prompt rpcfn =
+    printf "\n> ";
+    let stdin = Lazy.force Reader.stdin in
+    let%bind line = Reader.read_line stdin in
+    match line with
+    | `Ok "quit" -> Deferred.unit
+    | `Eof ->
+        let () = print_endline "No command entered, please try again" in
+        prompt rpcfn
+    | `Ok line ->
+        let%bind () = eval rpcfn line in
+        prompt rpcfn
+
+  let print_info () =
+    print_endline
+      "Welcome to the bookstore! We can support the following commands:\n\
+       search <topic> - search for books by topic\n\
+       lookup <item_number> - lookup a book by item number\n\
+       buy <item_number> - buy a book by item number\n\
+       quit - quit the bookstore"
+
+  let start rpcfn =
+    print_endline "Starting bookstore client...";
+    let () = print_info () in
+    prompt rpcfn
+end
