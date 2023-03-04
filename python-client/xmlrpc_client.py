@@ -29,7 +29,7 @@ def buy(proxy, item_number):
     else:
         get_result(proxy.buy({"item_number": int(item_number)}))
 
-with xmlrpc.client.ServerProxy("http://127.0.0.1:8000/") as proxy:
+def repl(proxy):
     print("Welcome to the bookstore! We can support the following commands:")
     print("search <topic> - search for books by topic")
     print("lookup <item_number> - lookup a book by item number")
@@ -53,3 +53,7 @@ with xmlrpc.client.ServerProxy("http://127.0.0.1:8000/") as proxy:
             buy(proxy,arg)
         else:
             print("Invalid command. Please try again.")
+
+if __name__ == "__main__":
+    with xmlrpc.client.ServerProxy("http://127.0.0.1:8000/") as proxy:
+        repl(proxy)
