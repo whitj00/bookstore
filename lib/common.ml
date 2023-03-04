@@ -55,19 +55,19 @@ module BookstoreAPI (R : Idl.RPC) = struct
   let search_response_p = Idl.Param.mk ~name:"return" SearchResponse.t
   let lookup_response_p = Idl.Param.mk ~name:"return" LookupResponse.t
   let buy_response_p = Idl.Param.mk ~name:"return" BuyResponse.t
-  let e1 = Idl.DefaultError.err
+  let e = Idl.DefaultError.err
 
   let search =
     declare "search" [ "Search for books" ]
-      (str_p "topic" @-> returning search_response_p e1)
+      (str_p "topic" @-> returning search_response_p e)
 
   let lookup =
     declare "lookup"
       [ "Find a book by its item_number" ]
-      (int_p "item_number" @-> returning lookup_response_p e1)
+      (int_p "item_number" @-> returning lookup_response_p e)
 
   let buy =
     declare "buy"
       [ "Buy a book by item number" ]
-      (int_p "item_number" @-> returning buy_response_p e1)
+      (int_p "item_number" @-> returning buy_response_p e)
 end
