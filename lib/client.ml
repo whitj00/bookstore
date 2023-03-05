@@ -5,6 +5,9 @@ open Common
 open Rpc_async
 module ClientAPI = BookstoreAPI (GenClient ())
 
+let string_of_default_error (e : Idl.DefaultError.t) =
+  match e with InternalError s -> s
+
 module Rpc = struct
   (* This function takes in a host, port, and body, and returns the response
      from the server. It is a helper function for the create_remote_rpc function
@@ -39,10 +42,10 @@ end
 module Main = struct
   let get_result ~to_str rpc_call transport_fn arg =
     let%bind response = rpc_call transport_fn arg |> T.get in
-    (match response with
-    | Ok result -> to_str result
-    | Error e -> sprintf "RPC call failed: %s" (Util.string_of_default_error e))
-    |> return
+    match response with
+    | Ok result -> to_str result |> return
+    | Error e ->
+        string_of_default_error e |> sprintf "RPC call failed: %s" |> return
 
   let lookup = get_result ClientAPI.lookup ~to_str:LookupResponse.to_string
   let search = get_result ClientAPI.search ~to_str:SearchResponse.to_string
@@ -56,8 +59,7 @@ module Time = struct
     (match response with
     | Ok _ -> ()
     | Error e ->
-        sprintf "RPC call failed: %s" (Util.string_of_default_error e)
-        |> failwith)
+        sprintf "RPC call failed: %s" (string_of_default_error e) |> failwith)
     |> return
 
   (* Calls the given rpc call n times, with c concurrent calls *)
