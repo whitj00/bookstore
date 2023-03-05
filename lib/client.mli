@@ -19,5 +19,5 @@ module Time : sig
 end
 
 module Repl : sig
-  val start : T.rpcfn -> unit Deferred.t
+  val start : host:string -> port:int -> unit Async_kernel__Types.Deferred.t
 end

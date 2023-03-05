@@ -1,12 +1,10 @@
-open Common
-open Rpc_async
-open! Core
+open Core
 open Async
 open Cohttp
 open Cohttp_async
+open Common
+open Rpc_async
 module ClientAPI = BookstoreAPI (GenClient ())
-
-let ( >>>= ) x f = x |> T.get >>= f
 
 module Rpc = struct
   let get_response ~host ~port ~body =
@@ -34,11 +32,11 @@ end
 
 module Main = struct
   let get_result ~to_str rpc_call rpc arg =
-    (* If not specified, return an empty response *)
-    rpc_call rpc arg >>>= function
-    | Ok result -> return (to_str result)
-    | Error e ->
-        sprintf "RPC call failed: %s" (Util.string_of_default_error e) |> return
+    let%bind response = rpc_call rpc arg |> T.get in
+    (match response with
+    | Ok result -> to_str result
+    | Error e -> sprintf "RPC call failed: %s" (Util.string_of_default_error e))
+    |> return
 
   let lookup = get_result ClientAPI.lookup ~to_str:LookupResponse.to_string
   let search = get_result ClientAPI.search ~to_str:SearchResponse.to_string
@@ -46,16 +44,19 @@ module Main = struct
 end
 
 module Time = struct
-  let ignore_success rpc_call rpc arg =
-    (* If not specified, return an empty response *)
-    rpc_call rpc arg >>>= function
-    | Ok _ -> return ()
+  (* Fails on error, ignores the results of successes *)
+  let get_result' rpc_call (rpc : T.rpcfn) arg =
+    let%bind response = rpc_call rpc arg |> T.get in
+    (match response with
+    | Ok _ -> ()
     | Error e ->
         sprintf "RPC call failed: %s" (Util.string_of_default_error e)
-        |> failwith
+        |> failwith)
+    |> return
 
+  (* Calls the given rpc call n times, with c concurrent calls *)
   let time_n_calls call ~n ~c rpc_fn arg =
-    let f _ = ignore_success call rpc_fn arg in
+    let f _ = get_result' call rpc_fn arg in
     let start = Time.now () in
     let how = `Max_concurrent_jobs c in
     let%bind _ = Deferred.List.init ~how n ~f in
@@ -73,19 +74,22 @@ module Repl = struct
     | None -> print_endline "Invalid argument, must be an int" |> return
     | Some item_number -> f item_number
 
-  let remove_prefix_and_suffix symbol arg =
-    match String.lsplit2 arg ~on:symbol with
-    | Some ("", arg) -> (
-        match String.rsplit2 arg ~on:symbol with
-        | Some (arg, "") -> arg
-        | _ -> arg)
-    | _ -> arg
+  (* This function takes a character and a string. If the string is surrounded
+     by the character, this function will return the inner string *)
+  let remove_prefix_and_suffix on str =
+    match String.lsplit2 str ~on with
+    | Some ("", str) -> (
+        match String.rsplit2 str ~on with Some (str, "") -> str | _ -> str)
+    | _ -> str
 
+  (* Returns the argument, with surrounding single and double quotes removed *)
   let remove_quotes_if_exist arg =
     let arg' = remove_prefix_and_suffix '"' arg in
     remove_prefix_and_suffix '\'' arg'
 
+  (* Evaluates a single command entered to the repl *)
   let eval rpcfn cmd =
+    (* Split the command on the first argument *)
     match String.lsplit2 cmd ~on:' ' with
     | None ->
         let () = print_endline "No argument found, please try again" in
@@ -107,12 +111,25 @@ module Repl = struct
                 print_endline result |> return)
         | _ -> print_endline "Unknown command" |> return)
 
+  let print_info () =
+    print_endline
+      "Welcome to the bookstore! We can support the following commands:\n\
+       search <topic> - search for books by topic\n\
+       lookup <item_number> - lookup a book by item number\n\
+       buy <item_number> - buy a book by item number\n\
+       help - print this prompt\n\
+       quit - quit the bookstore"
+
+  (* Simple recursive prompt loop *)
   let rec prompt rpcfn =
     printf "\n> ";
     let stdin = Lazy.force Reader.stdin in
     let%bind line = Reader.read_line stdin in
     match line with
     | `Ok "quit" -> Deferred.unit
+    | `Ok "help" ->
+        let () = print_info () in
+        prompt rpcfn
     | `Eof ->
         let () = print_endline "No command entered, please try again" in
         prompt rpcfn
@@ -120,16 +137,10 @@ module Repl = struct
         let%bind () = eval rpcfn line in
         prompt rpcfn
 
-  let print_info () =
-    print_endline
-      "Welcome to the bookstore! We can support the following commands:\n\
-       search <topic> - search for books by topic\n\
-       lookup <item_number> - lookup a book by item number\n\
-       buy <item_number> - buy a book by item number\n\
-       quit - quit the bookstore"
-
-  let start rpcfn =
+  let start ~host ~port =
     print_endline "Starting bookstore client...";
+    let rpcfn = Rpc.create_remote_rpc ~host ~port in
     let () = print_info () in
+    let%bind () = prompt rpcfn in
     prompt rpcfn
 end

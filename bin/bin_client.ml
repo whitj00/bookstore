@@ -78,10 +78,7 @@ module Repl = struct
   let command =
     Command.async ~summary:"Start a REPL"
       (let%map_open.Command host = host_flag and port = port_flag in
-       fun () ->
-         let rpc_fn = Client.Rpc.create_remote_rpc ~host ~port in
-         let%bind () = Client.Repl.start rpc_fn in
-         return ())
+       fun () -> Client.Repl.start ~host ~port)
 end
 
 let commands =
