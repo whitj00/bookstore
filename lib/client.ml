@@ -1,17 +1,19 @@
 open Core
 open Async
-open Cohttp
 open Cohttp_async
 open Common
 open Rpc_async
 module ClientAPI = BookstoreAPI (GenClient ())
 
 module Rpc = struct
+  (* This function takes in a host, port, and body, and returns the response
+     from the server. It is a helper function for the create_remote_rpc
+     function below. *)
   let get_remote_response ~host ~port ~body =
     let%bind response, body =
       Cohttp_async.Client.post ~body (Uri.make ~host ~port ~path:"/" ())
     in
-    let code = Response.status response |> Code.code_of_status in
+    let code = Response.status response |> Cohttp.Code.code_of_status in
     match code with
     | 200 ->
         let%bind body = Cohttp_async.Body.to_string body in
@@ -35,8 +37,8 @@ module Rpc = struct
 end
 
 module Main = struct
-  let get_result ~to_str rpc_call rpc arg =
-    let%bind response = rpc_call rpc arg |> T.get in
+  let get_result ~to_str rpc_call transport_fn arg =
+    let%bind response = rpc_call transport_fn arg |> T.get in
     (match response with
     | Ok result -> to_str result
     | Error e -> sprintf "RPC call failed: %s" (Util.string_of_default_error e))
@@ -49,8 +51,8 @@ end
 
 module Time = struct
   (* Fails on error, ignores the results of successes *)
-  let get_result' rpc_call (rpc : T.rpcfn) arg =
-    let%bind response = rpc_call rpc arg |> T.get in
+  let get_result' rpc_call transport_fn arg =
+    let%bind response = rpc_call transport_fn arg |> T.get in
     (match response with
     | Ok _ -> ()
     | Error e ->
@@ -92,7 +94,7 @@ module Repl = struct
     remove_prefix_and_suffix '\'' arg'
 
   (* Evaluates a single command entered to the repl *)
-  let eval rpcfn cmd =
+  let eval transport_fn cmd =
     (* Split the command on the first argument *)
     match String.lsplit2 cmd ~on:' ' with
     | None ->
@@ -103,15 +105,15 @@ module Repl = struct
         let arg = remove_quotes_if_exist arg in
         match cmd with
         | "search" ->
-            let%bind result = Main.search rpcfn arg in
+            let%bind result = Main.search transport_fn arg in
             print_endline result |> return
         | "lookup" ->
             with_int_arg arg ~f:(fun item_number ->
-                let%bind result = Main.lookup rpcfn item_number in
+                let%bind result = Main.lookup transport_fn item_number in
                 print_endline result |> return)
         | "buy" ->
             with_int_arg arg ~f:(fun item_number ->
-                let%bind result = Main.buy rpcfn item_number in
+                let%bind result = Main.buy transport_fn item_number in
                 print_endline result |> return)
         | _ -> print_endline "Unknown command" |> return)
 
@@ -125,28 +127,27 @@ module Repl = struct
        quit - quit the bookstore"
 
   (* Simple recursive prompt loop, parameterized by our transport function *)
-  let rec prompt rpcfn =
-    printf "\n> ";
+  let rec prompt transport_fn =
     let stdin = Lazy.force Reader.stdin in
+    let () = printf "\n> " in
     let%bind line = Reader.read_line stdin in
     match line with
     | `Eof ->
         let () = print_endline "No command entered, please try again" in
-        prompt rpcfn
-    | `Ok command -> (
-        let command' = String.strip command in
-        match command' with
+        prompt transport_fn
+    | `Ok cmd -> (
+        match String.strip cmd with
         | "quit" -> Deferred.unit
         | "help" ->
             let () = print_info () in
-            prompt rpcfn
-        | _ ->
-            let%bind () = eval rpcfn command' in
-            prompt rpcfn)
+            prompt transport_fn
+        | cmd' ->
+            let%bind () = eval transport_fn cmd' in
+            prompt transport_fn)
 
   let start ~host ~port =
-    let rpcfn = Rpc.create_remote_rpc ~host ~port in
+    let transport_fn = Rpc.create_remote_rpc ~host ~port in
     let () = print_info () in
-    let%bind () = prompt rpcfn in
-    prompt rpcfn
+    let%bind () = prompt transport_fn in
+    prompt transport_fn
 end
