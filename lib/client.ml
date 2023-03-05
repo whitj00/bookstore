@@ -68,15 +68,17 @@ module Time = struct
 end
 
 module Repl = struct
-  let with_item_number arg ~f =
+  let with_int_arg arg ~f =
     match int_of_string_opt arg with
-    | None -> print_endline "Invalid item number, must be an int" |> return
+    | None -> print_endline "Invalid argument, must be an int" |> return
     | Some item_number -> f item_number
 
-  let remove_prefix_and_suffix symbol arg  =
+  let remove_prefix_and_suffix symbol arg =
     match String.lsplit2 arg ~on:symbol with
     | Some ("", arg) -> (
-        match String.rsplit2 arg ~on:symbol with Some (arg, "") -> arg | _ -> arg)
+        match String.rsplit2 arg ~on:symbol with
+        | Some (arg, "") -> arg
+        | _ -> arg)
     | _ -> arg
 
   let remove_quotes_if_exist arg =
@@ -96,11 +98,11 @@ module Repl = struct
             let%bind result = Main.search rpcfn arg in
             print_endline result |> return
         | "lookup" ->
-            with_item_number arg ~f:(fun item_number ->
+            with_int_arg arg ~f:(fun item_number ->
                 let%bind result = Main.lookup rpcfn item_number in
                 print_endline result |> return)
         | "buy" ->
-            with_item_number arg ~f:(fun item_number ->
+            with_int_arg arg ~f:(fun item_number ->
                 let%bind result = Main.buy rpcfn item_number in
                 print_endline result |> return)
         | _ -> print_endline "Unknown command" |> return)
