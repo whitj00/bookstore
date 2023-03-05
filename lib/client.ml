@@ -7,7 +7,7 @@ open Rpc_async
 module ClientAPI = BookstoreAPI (GenClient ())
 
 module Rpc = struct
-  let get_response ~host ~port ~body =
+  let get_remote_response ~host ~port ~body =
     let%bind response, body =
       Cohttp_async.Client.post ~body (Uri.make ~host ~port ~path:"/" ())
     in
@@ -18,11 +18,15 @@ module Rpc = struct
         return (Ok body)
     | _ -> return (Error (sprintf "HTTP error %d" code))
 
+  (* This creates a function that takes in an Rpc.call, calls the remote server,
+     and returns the Rpc.Response. This function is necessary because it
+     implements the _transport_ mechanism for the rpc. Our client bindings take
+     this function as an argument. *)
   let create_remote_rpc ~host ~port =
     let remote_rpc call =
       let call = Xmlrpc.string_of_call call in
       let body = Body.of_string call in
-      let%bind response = get_response ~host ~port ~body in
+      let%bind response = get_remote_response ~host ~port ~body in
       match response with
       | Error e -> failwith e
       | Ok response_str -> return (Xmlrpc.response_of_string response_str)
@@ -120,25 +124,27 @@ module Repl = struct
        help - print this prompt\n\
        quit - quit the bookstore"
 
-  (* Simple recursive prompt loop *)
+  (* Simple recursive prompt loop, parameterized by our transport function *)
   let rec prompt rpcfn =
     printf "\n> ";
     let stdin = Lazy.force Reader.stdin in
     let%bind line = Reader.read_line stdin in
     match line with
-    | `Ok "quit" -> Deferred.unit
-    | `Ok "help" ->
-        let () = print_info () in
-        prompt rpcfn
     | `Eof ->
         let () = print_endline "No command entered, please try again" in
         prompt rpcfn
-    | `Ok line ->
-        let%bind () = eval rpcfn line in
-        prompt rpcfn
+    | `Ok command -> (
+        let command' = String.strip command in
+        match command' with
+        | "quit" -> Deferred.unit
+        | "help" ->
+            let () = print_info () in
+            prompt rpcfn
+        | _ ->
+            let%bind () = eval rpcfn command' in
+            prompt rpcfn)
 
   let start ~host ~port =
-    print_endline "Starting bookstore client...";
     let rpcfn = Rpc.create_remote_rpc ~host ~port in
     let () = print_info () in
     let%bind () = prompt rpcfn in

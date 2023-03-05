@@ -36,7 +36,7 @@ def repl(proxy):
     print("buy <item_number> - buy a book by item number")
     print("quit - quit the bookstore")
     while True:
-        # attribution: https://stackoverflow.com/questions/79968/split-a-string-by-spaces-preserving-quoted-substrings-in-python
+        # thank you: https://stackoverflow.com/questions/79968
         command = shlex.split(input("\n> "))
         if command[0] == "quit":
             break
