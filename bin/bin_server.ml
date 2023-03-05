@@ -12,8 +12,8 @@ let start_cmd =
      and daemon = flag "-daemon" no_arg ~doc:"run as daemon"
      and uri = db_flag in
      fun () ->
-      let pool = Db.Connection_pool.create ~uri in
-      let () = print_endline "Starting server..." in
+       let pool = Db.Connection_pool.create ~uri in
+       let () = print_endline "Starting server..." in
        let () = if daemon then daemonize () in
        let%bind _ = Server.start ~pool ~port () in
        return ())
@@ -22,7 +22,7 @@ let logs_cmd =
   Command.async ~summary:"Prings a log of purchases"
     (let%map_open.Command uri = db_flag in
      fun () ->
-      let pool = Db.Connection_pool.create ~uri in
+       let pool = Db.Connection_pool.create ~uri in
        let%bind purchases = Db.Server.get_purchases ~pool () in
        List.iter purchases
          ~f:(fun (purchase_id, time_created, price, item_number) ->
@@ -34,9 +34,10 @@ let update_price_cmd =
   Command.async ~summary:"Updates the price of a book"
     (let%map_open.Command id =
        flag "-item-number" (required int) ~doc:"item Item number"
-     and price = flag "-price" (required float) ~doc:"price New price" and uri = db_flag in
+     and price = flag "-price" (required float) ~doc:"price New price"
+     and uri = db_flag in
      fun () ->
-      let pool = Db.Connection_pool.create ~uri in
+       let pool = Db.Connection_pool.create ~uri in
        let%map result = Db.Server.update_price ~pool price id in
        match result with
        | true -> print_endline "Price updated"
@@ -49,10 +50,10 @@ let restock_cmd =
      and n =
        flag "-n"
          (optional_with_default 5 int)
-         ~doc:"count Number of items to add (default = 5)" and uri = db_flag
-     in
+         ~doc:"count Number of items to add (default = 5)"
+     and uri = db_flag in
      fun () ->
-      let pool = Db.Connection_pool.create ~uri in
+       let pool = Db.Connection_pool.create ~uri in
        let%map result = Db.Server.update_stock ~pool id n in
        match result with
        | true -> print_endline (sprintf "Added %d books to stock" n)

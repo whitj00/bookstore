@@ -29,9 +29,10 @@ let insert_cmd =
      and title = anon ("title" %: string)
      and topic = anon ("topic" %: string)
      and stock = anon ("stock" %: int)
-     and price = anon ("price" %: float) and uri = db_flag in
+     and price = anon ("price" %: float)
+     and uri = db_flag in
      fun () ->
-      let pool = Db.Connection_pool.create ~uri in
+       let pool = Db.Connection_pool.create ~uri in
        let%bind _ = Db.Util.add_row ~pool (id, title, topic, stock, price) in
        Deferred.unit)
 

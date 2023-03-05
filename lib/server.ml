@@ -35,19 +35,23 @@ let buy_impl ~pool =
   in
   T.lift get_buy_result
 
-(* Implement RPC Server From our Definition *)
-let create_rpc ~pool =
+(* Implements the RPC server bindings from our definition *)
+let create_rpc_handler ~pool =
   let module Interface = BookstoreAPI (GenServer ()) in
+  (* Attach implementations to server bindings *)
   Interface.lookup (lookup_impl ~pool);
   Interface.search (search_impl ~pool);
   Interface.buy (buy_impl ~pool);
   server Interface.implementation
 
+(* This function is called by the server to handle each new connection. The
+   function converts the body of the request to an Rpc.call, calls the
+   rpc_handler, and responds with the result. *)
 let create_request_handler ~pool =
-  let rpc = create_rpc ~pool in
+  let rpc_handler = create_rpc_handler ~pool in
   let request_handler ~body _ _ =
     let%bind request = Body.to_string body >>| Xmlrpc.call_of_string in
-    let%bind response = rpc request >>| Xmlrpc.string_of_response in
+    let%bind response = rpc_handler request >>| Xmlrpc.string_of_response in
     Server.respond_string response ~status:`OK
   in
   request_handler
@@ -61,6 +65,4 @@ let create_server ~pool port =
   in
   return ()
 
-let start ~pool ~port () =
-  let%bind () = create_server ~pool port in
-  Deferred.never ()
+let start ~pool ~port () = create_server ~pool port >>= Deferred.never

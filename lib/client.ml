@@ -123,7 +123,7 @@ module Repl = struct
        search <topic> - search for books by topic\n\
        lookup <item_number> - lookup a book by item number\n\
        buy <item_number> - buy a book by item number\n\
-       help - print this prompt\n\
+       help - print this prompt again\n\
        quit - quit the bookstore"
 
   (* Simple recursive prompt loop, parameterized by our transport function *)

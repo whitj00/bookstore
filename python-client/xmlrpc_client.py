@@ -34,12 +34,16 @@ def repl(proxy):
     print("search <topic> - search for books by topic")
     print("lookup <item_number> - lookup a book by item number")
     print("buy <item_number> - buy a book by item number")
+    print("help - print this prompt again")
     print("quit - quit the bookstore")
     while True:
-        # thank you: https://stackoverflow.com/questions/79968
+        # https://stackoverflow.com/questions/79968
         command = shlex.split(input("\n> "))
+
         if command[0] == "quit":
             break
+        if command[0] == "help":
+            continue
         elif len(command) != 2:
             print("Invalid number of arguments. Please try again.")
             continue
