@@ -9,12 +9,7 @@ let caqti_fail e = failwith (Caqti_error.show e)
 module Connection_pool = struct
   type t = ((module Caqti_async.CONNECTION), Caqti_error.t) Caqti_async.Pool.t
 
-  let default =
-    [ "sqlite3:///"; Core_unix.getcwd (); "/test.db?create=true" ]
-    |> String.concat
-
-  let create ?uri () =
-    let uri = Option.value uri ~default in
+  let create ~uri =
     match Caqti_async.connect_pool ~max_size:20 (Uri.of_string uri) with
     | Ok pool -> pool
     | Error e -> caqti_fail e

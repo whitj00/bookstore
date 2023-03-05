@@ -3,7 +3,7 @@ open Async
 module Connection_pool : sig
   type t
 
-  val create : ?uri:string -> unit -> t
+  val create : uri:string -> t
 end
 
 module Util : sig

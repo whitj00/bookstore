@@ -7,8 +7,8 @@ module ClientAPI = BookstoreAPI (GenClient ())
 
 module Rpc = struct
   (* This function takes in a host, port, and body, and returns the response
-     from the server. It is a helper function for the create_remote_rpc
-     function below. *)
+     from the server. It is a helper function for the create_remote_rpc function
+     below. *)
   let get_remote_response ~host ~port ~body =
     let%bind response, body =
       Cohttp_async.Client.post ~body (Uri.make ~host ~port ~path:"/" ())

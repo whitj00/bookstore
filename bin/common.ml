@@ -1,6 +1,16 @@
 open! Core
 open Async
 
+let db_flag =
+  let default =
+    [ "sqlite3:///"; Core_unix.getcwd (); "/test.db?create=true" ]
+    |> String.concat
+  in
+  Command.Param.(
+    flag "-db"
+      (optional_with_default default string)
+      ~doc:"db_uri Sqlite path of database")
+
 let host_flag =
   Command.Param.(
     flag "-host"
