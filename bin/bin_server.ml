@@ -14,8 +14,8 @@ let start_cmd =
      fun () ->
        let pool = Db.Connection_pool.create ~uri in
        let () = print_endline "Starting server..." in
-       let () = if daemon then daemonize () in
        let%bind _ = Server.start ~pool ~port () in
+       let () = if daemon then daemonize () in
        return ())
 
 let logs_cmd =
