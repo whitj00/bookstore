@@ -143,10 +143,10 @@ module Client = struct
   let buy_book ~pool item_number =
     let output_query =
       let open Caqti_request.Infix in
-      Caqti_type.(int -->! string)
-      @:- "SELECT (CASE WHEN NOT EXISTS (SELECT * FROM books where id = ?1) \
+      Caqti_type.(tup2 int int -->! string)
+      @:- "SELECT (CASE WHEN NOT EXISTS (SELECT * FROM books where id = ?) \
            THEN 'No book found with given item_number' WHEN NOT EXISTS (SELECT \
-           * FROM books where id = ?1 and STOCK > 0) THEN 'Out of stock' ELSE \
+           * FROM books where id = ? and STOCK > 0) THEN 'Out of stock' ELSE \
            '' END) as message"
     in
     let update_query =
@@ -165,7 +165,7 @@ module Client = struct
       let open Deferred.Result.Let_syntax in
       C.with_transaction (fun () ->
           let%bind error_message =
-            C.find output_query item_number
+            C.find output_query (item_number,item_number)
           in
           match String.equal error_message "" with
           | false -> return (false, error_message)
