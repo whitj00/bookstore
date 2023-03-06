@@ -11,14 +11,14 @@ let lookup_impl ~pool =
     | Some (title, topic, stock, price) ->
         Ok { LookupResponse.title; topic; stock; price } |> return
     | None ->
-        Error (Idl.DefaultError.InternalError "Book not found")
-        |> Deferred.return
+        Error (Idl.DefaultError.InternalError "Book not found") |> Deferred.return
   in
   T.lift get_lookup_result
 
 let search_impl ~pool =
   let get_search_result search_query =
     let%bind result = Db.Client.search_book ~pool search_query in
+    (* Turn a record tuple into a SearchRecord.t *)
     let records =
       List.map result ~f:(fun (item_number, title) ->
           { SearchRecord.item_number; title })

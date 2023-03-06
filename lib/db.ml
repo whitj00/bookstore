@@ -46,7 +46,7 @@ module Util = struct
         10.00 );
     ]
 
-  (* This function adds a row to our books table *)
+    (* This function adds a row to our books table *)
   let add_row ~pool (id, title, topic, stock, price) =
     let query =
       let open Caqti_request.Infix in
@@ -58,7 +58,7 @@ module Util = struct
     in
     or_error query' ~pool
 
-  let create_books_table ~pool =
+  let create_books_table ~pool () =
     let query =
       let open Caqti_request.Infix in
       Caqti_type.(unit -->. unit)
@@ -73,7 +73,7 @@ module Util = struct
     let%bind () = exec_unit_no_args ~pool query in
     Deferred.List.iter initial_books ~f:(fun book -> add_row ~pool book)
 
-  let create_purchases_table ~pool =
+  let create_purchases_table ~pool () =
     let query =
       let open Caqti_request.Infix in
       Caqti_type.(unit -->. unit)
@@ -86,29 +86,34 @@ module Util = struct
     in
     exec_unit_no_args ~pool query
 
-  let drop_books_table ~pool =
+  let drop_books_table ~pool () =
     let query =
       let open Caqti_request.Infix in
       Caqti_type.(unit -->. unit) @:- "DROP TABLE IF EXISTS BOOKS;"
     in
     exec_unit_no_args ~pool query
 
-  let drop_purchases_table ~pool =
+  let drop_purchases_table ~pool () =
     let query =
       let open Caqti_request.Infix in
       Caqti_type.(unit -->. unit) @:- "DROP TABLE IF EXISTS PURCHASES;"
     in
     exec_unit_no_args ~pool query
 
-  let create_tables ~pool =
-    Deferred.List.iter
-      [ create_books_table ~pool; create_purchases_table ~pool ]
+  let create_tables ~pool () =
+    let%bind () = create_books_table ~pool () in
+    let%bind () = create_purchases_table ~pool () in
+    return ()
 
-  let drop_tables ~pool =
-    Deferred.List.iter [ drop_books_table ~pool; drop_purchases_table ~pool ]
+  let drop_tables ~pool () =
+    let%bind () = drop_books_table ~pool () in
+    let%bind () = drop_purchases_table ~pool () in
+    return ()
 
   let reset_tables ~pool () =
-    Deferred.List.iter [ drop_tables ~pool; create_tables ~pool ]
+    let%bind () = drop_tables ~pool () in
+    let%bind () = create_tables ~pool () in
+    return ()
 end
 
 module Client = struct
@@ -159,7 +164,9 @@ module Client = struct
     let query' (module C : Caqti_async.CONNECTION) =
       let open Deferred.Result.Let_syntax in
       C.with_transaction (fun () ->
-          let%bind error_message = C.find output_query item_number in
+          let%bind error_message =
+            C.find output_query item_number
+          in
           match String.equal error_message "" with
           | false -> return (false, error_message)
           | true ->
@@ -194,7 +201,9 @@ module Server = struct
       Caqti_type.(tup2 float int -->! bool)
       @:- "UPDATE BOOKS SET PRICE = ? WHERE ID = ? RETURNING id"
     in
-    let query' (module C : Caqti_async.CONNECTION) = C.find query (price, id) in
+    let query' (module C : Caqti_async.CONNECTION) =
+      C.find query (price, id)
+    in
     or_error ~pool query'
 
   let update_stock ~pool id amount =
