@@ -60,7 +60,7 @@ let create_request_handler ~pool =
 let create_server ~pool port =
   let request_handler = create_request_handler ~pool in
   let%bind _ =
-    Server.create ~on_handler_error:`Ignore
+    Server.create ~on_handler_error:`Raise
       (Tcp.Where_to_listen.of_port port)
       request_handler
   in
