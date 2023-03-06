@@ -11,7 +11,8 @@ let lookup_impl ~pool =
     | Some (title, topic, stock, price) ->
         Ok { LookupResponse.title; topic; stock; price } |> return
     | None ->
-        Error (Idl.DefaultError.InternalError "Book not found") |> Deferred.return
+        Error (Idl.DefaultError.InternalError "Book not found")
+        |> Deferred.return
   in
   T.lift get_lookup_result
 
@@ -66,4 +67,4 @@ let create_server ~pool port =
   in
   return ()
 
-let start ~pool ~port () = create_server ~pool port >>= Deferred.never
+let start ~pool ~port () = create_server ~pool port |> Deferred.ignore_m

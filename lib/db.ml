@@ -46,7 +46,7 @@ module Util = struct
         10.00 );
     ]
 
-    (* This function adds a row to our books table *)
+  (* This function adds a row to our books table *)
   let add_row ~pool (id, title, topic, stock, price) =
     let query =
       let open Caqti_request.Infix in
@@ -165,7 +165,7 @@ module Client = struct
       let open Deferred.Result.Let_syntax in
       C.with_transaction (fun () ->
           let%bind error_message =
-            C.find output_query (item_number,item_number)
+            C.find output_query (item_number, item_number)
           in
           match String.equal error_message "" with
           | false -> return (false, error_message)
@@ -201,9 +201,7 @@ module Server = struct
       Caqti_type.(tup2 float int -->! bool)
       @:- "UPDATE BOOKS SET PRICE = ? WHERE ID = ? RETURNING id"
     in
-    let query' (module C : Caqti_async.CONNECTION) =
-      C.find query (price, id)
-    in
+    let query' (module C : Caqti_async.CONNECTION) = C.find query (price, id) in
     or_error ~pool query'
 
   let update_stock ~pool id amount =

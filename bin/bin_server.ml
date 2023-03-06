@@ -16,7 +16,7 @@ let start_cmd =
        let () = print_endline "Starting server..." in
        let%bind _ = Server.start ~pool ~port () in
        let () = if daemon then daemonize () in
-       return ())
+       Deferred.never ())
 
 let logs_cmd =
   Command.async ~summary:"Prings a log of purchases"
