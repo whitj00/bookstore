@@ -1,5 +1,6 @@
 import xmlrpc.client
 import shlex
+import argparse
 
 def get_result(result):
     if result["Status"] == "Success":
@@ -59,5 +60,8 @@ def repl(proxy):
             print("Invalid command. Please try again.")
 
 if __name__ == "__main__":
-    with xmlrpc.client.ServerProxy("http://127.0.0.1:8000/") as proxy:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--server", type=str, help="server address", default="http://127.0.0.1:8000/")
+    args = parser.parse_args()
+    with xmlrpc.client.ServerProxy(args.server) as proxy:
         repl(proxy)
