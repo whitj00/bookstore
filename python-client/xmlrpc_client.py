@@ -30,13 +30,27 @@ def buy(proxy, item_number):
     else:
         get_result(proxy.buy({"item_number": int(item_number)}))
 
-def repl(proxy):
-    print("Welcome to the bookstore! We can support the following commands:")
+def exec(proxy, command):
+    arg = command[1]
+    if command[0] == "search":
+        search(proxy,arg)
+    elif command[0] == "lookup":
+        lookup(proxy,arg)
+    elif command[0] == "buy":
+        buy(proxy,arg)
+    else:
+        print("Invalid command. Please try again.")
+
+def print_help():
     print("search <topic> - search for books by topic")
     print("lookup <item_number> - lookup a book by item number")
     print("buy <item_number> - buy a book by item number")
     print("help - print this prompt again")
     print("quit - quit the bookstore")
+
+def repl(proxy):
+    print("Welcome to the bookstore! We can support the following commands:")
+    print_help()
     while True:
         # https://stackoverflow.com/questions/79968
         command = shlex.split(input("\n> "))
@@ -44,20 +58,14 @@ def repl(proxy):
         if command[0] == "quit":
             break
         if command[0] == "help":
+            print_help()
             continue
         elif len(command) != 2:
             print("Invalid number of arguments. Please try again.")
             continue
 
-        arg = command[1]
-        if command[0] == "search":
-            search(proxy,arg)
-        elif command[0] == "lookup":
-            lookup(proxy,arg)
-        elif command[0] == "buy":
-            buy(proxy,arg)
-        else:
-            print("Invalid command. Please try again.")
+        exec(proxy,command)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

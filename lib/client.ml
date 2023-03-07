@@ -40,12 +40,16 @@ module Rpc = struct
 end
 
 module Main = struct
-  let get_result ~to_str rpc_call transport_fn arg =
-    let%bind response = rpc_call transport_fn arg |> T.get in
-    match response with
-    | Ok result -> to_str result |> return
-    | Error e ->
-        string_of_default_error e |> sprintf "RPC call failed: %s" |> return
+  (* Calls rpc_call using the provided transport function*)
+  let get_result rpc_call ~to_str =
+    let get_result' transport_fn arg =
+      let%bind response = rpc_call transport_fn arg |> T.get in
+      match response with
+      | Ok result -> to_str result |> return
+      | Error e ->
+          string_of_default_error e |> sprintf "RPC call failed: %s" |> return
+    in
+    get_result'
 
   let lookup = get_result ClientAPI.lookup ~to_str:LookupResponse.to_string
   let search = get_result ClientAPI.search ~to_str:SearchResponse.to_string
@@ -65,9 +69,9 @@ module Time = struct
   (* Calls the given rpc call n times, with c concurrent calls *)
   let time_n_calls call ~n ~c rpc_fn arg =
     let f _ = get_result' call rpc_fn arg in
-    let start = Time.now () in
     let how = `Max_concurrent_jobs c in
-    let%bind _ = Deferred.List.init ~how n ~f in
+    let start = Time.now () in
+    let%bind _ = Deferred.Sequence.init ~how n ~f in
     let finish = Time.now () in
     Time.diff finish start |> Time.Span.to_string_hum |> return
 
