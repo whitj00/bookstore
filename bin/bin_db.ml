@@ -36,7 +36,7 @@ let insert_cmd =
        let%bind _ = Db.Util.add_row ~pool (id, title, topic, stock, price) in
        Deferred.unit)
 
-let db_commands =
+let commands =
   let subcommands =
     [
       ("create", create_cmd);
