@@ -26,8 +26,8 @@ let or_error ~(pool : Connection_pool.t) query =
 
 let at_least_one_result ~(pool : Connection_pool.t) query =
   let%bind result = Caqti_async.Pool.use query pool in
-  match result with 
-  | Ok 0  -> return false
+  match result with
+  | Ok 0 -> return false
   | Error e -> caqti_fail e
   | Ok _ -> return true
 
@@ -148,21 +148,17 @@ module Client = struct
     or_error ~pool query'
 
   let buy_book ~pool item_number =
-    let output_query =
+    let price_stock_query =
       let open Caqti_request.Infix in
-      Caqti_type.(tup2 int int -->! string)
-      @:- "SELECT (CASE WHEN NOT EXISTS (SELECT * FROM books where id = ?) \
-           THEN 'No book found with given item_number' WHEN NOT EXISTS (SELECT \
-           * FROM books where id = ? and STOCK > 0) THEN 'Out of stock' ELSE \
-           '' END) as message"
+      Caqti_type.(int -->! tup2 float int)
+      @:- "SELECT PRICE, STOCK FROM BOOKS WHERE ID = ?"
     in
     let update_query =
       let open Caqti_request.Infix in
-      Caqti_type.(int -->! float)
-      @:- "UPDATE BOOKS SET STOCK = STOCK - 1 WHERE ID = ? AND STOCK > 0 \
-           RETURNING PRICE"
+      Caqti_type.(int -->. unit)
+      @:- "UPDATE BOOKS SET STOCK = STOCK - 1 WHERE ID = ? AND STOCK > 0"
     in
-    let insert_query =
+    let insert_log_query =
       let open Caqti_request.Infix in
       Caqti_type.(tup2 int float -->. unit)
       @:- "INSERT INTO purchases (item_number, price) VALUES (?, ?)"
@@ -171,20 +167,14 @@ module Client = struct
     let query' (module C : Caqti_async.CONNECTION) =
       let open Deferred.Result.Let_syntax in
       C.with_transaction (fun () ->
-          let%bind error_message =
-            C.find output_query (item_number, item_number)
-          in
-          match String.equal error_message "" with
-          | false -> return (false, error_message)
-          | true ->
-              let%bind price = C.find update_query item_number in
-              let%bind rows =
-                C.exec_with_affected_count insert_query (item_number, price)
-              in
-              return
-                (match rows with
-                | 1 -> (true, "")
-                | _ -> (false, "Unknown Error")))
+          let%bind find_result = C.find_opt price_stock_query item_number in
+          match find_result with
+          | None -> return (false, "No book found with given item_number")
+          | Some (_, 0) -> return (false, "Out of stock")
+          | Some (price, _) ->
+              let%bind () = C.exec update_query item_number in
+              let%bind () = C.exec insert_log_query (item_number, price) in
+              return (true, ""))
     in
     or_error ~pool query'
 end
@@ -208,17 +198,19 @@ module Server = struct
       Caqti_type.(tup2 float int -->. unit)
       @:- "UPDATE BOOKS SET PRICE = ? WHERE ID = ?"
     in
-    let query' (module C : Caqti_async.CONNECTION) = C.exec_with_affected_count query (price, id) in
+    let query' (module C : Caqti_async.CONNECTION) =
+      C.exec_with_affected_count query (price, id)
+    in
     at_least_one_result ~pool query'
 
-    let update_stock ~pool id amount =
-      let query =
-        let open Caqti_request.Infix in
-        Caqti_type.(tup2 int int -->. unit)
-        @:- "UPDATE BOOKS SET STOCK = STOCK + ? WHERE ID = ?"
-      in
-      let query' (module C : Caqti_async.CONNECTION) =
-        C.exec_with_affected_count query (amount, id)
-      in
-      at_least_one_result ~pool query'
+  let update_stock ~pool id amount =
+    let query =
+      let open Caqti_request.Infix in
+      Caqti_type.(tup2 int int -->. unit)
+      @:- "UPDATE BOOKS SET STOCK = STOCK + ? WHERE ID = ?"
+    in
+    let query' (module C : Caqti_async.CONNECTION) =
+      C.exec_with_affected_count query (amount, id)
+    in
+    at_least_one_result ~pool query'
 end
