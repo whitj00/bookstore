@@ -24,6 +24,13 @@ let or_error ~(pool : Connection_pool.t) query =
   let%bind result = Caqti_async.Pool.use query pool in
   match result with Ok x -> return x | Error e -> caqti_fail e
 
+let at_least_one_result ~(pool : Connection_pool.t) query =
+  let%bind result = Caqti_async.Pool.use query pool in
+  match result with 
+  | Ok 0  -> return false
+  | Error e -> caqti_fail e
+  | Ok _ -> return true
+
 (* Executes a query that takes in no arguments *)
 let exec_unit_no_args ~pool query =
   let query' (module C : Caqti_async.CONNECTION) = C.exec query () in
@@ -198,20 +205,20 @@ module Server = struct
   let update_price ~pool price id =
     let query =
       let open Caqti_request.Infix in
-      Caqti_type.(tup2 float int -->! bool)
-      @:- "UPDATE BOOKS SET PRICE = ? WHERE ID = ? RETURNING id"
+      Caqti_type.(tup2 float int -->. unit)
+      @:- "UPDATE BOOKS SET PRICE = ? WHERE ID = ?"
     in
-    let query' (module C : Caqti_async.CONNECTION) = C.find query (price, id) in
-    or_error ~pool query'
+    let query' (module C : Caqti_async.CONNECTION) = C.exec_with_affected_count query (price, id) in
+    at_least_one_result ~pool query'
 
-  let update_stock ~pool id amount =
-    let query =
-      let open Caqti_request.Infix in
-      Caqti_type.(tup2 int int -->! bool)
-      @:- "UPDATE BOOKS SET STOCK = STOCK + ? WHERE ID = ? RETURNING id"
-    in
-    let query' (module C : Caqti_async.CONNECTION) =
-      C.find query (amount, id)
-    in
-    or_error ~pool query'
+    let update_stock ~pool id amount =
+      let query =
+        let open Caqti_request.Infix in
+        Caqti_type.(tup2 int int -->. unit)
+        @:- "UPDATE BOOKS SET STOCK = STOCK + ? WHERE ID = ?"
+      in
+      let query' (module C : Caqti_async.CONNECTION) =
+        C.exec_with_affected_count query (amount, id)
+      in
+      at_least_one_result ~pool query'
 end
