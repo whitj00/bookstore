@@ -26,9 +26,9 @@ module LookupResponse = struct
 end
 
 module BuyResponse = struct
-  type t = unit [@@deriving rpcty]
+  type t = int [@@deriving rpcty]
 
-  let to_string _t = "Purchase successful\n"
+  let to_string t = sprintf "Bought book %d\n" t
 end
 
 module BookstoreAPI (R : Idl.RPC) = struct

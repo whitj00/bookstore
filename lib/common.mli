@@ -17,13 +17,13 @@ end
 module BuyResponse : sig
   type t
 
-  val to_string : 'a -> string
+  val to_string : int -> string
 end
 
 module BookstoreAPI : functor (R : Idl.RPC) -> sig
   val implementation : R.implementation
   val lookup : (int -> (LookupResponse.t, Idl.DefaultError.t) R.comp) R.res
-  val buy : (int -> (unit, Idl.DefaultError.t) R.comp) R.res
+  val buy : (int -> (int, Idl.DefaultError.t) R.comp) R.res
 
   val search :
     (string -> (SearchRecord.t list, Idl.DefaultError.t) R.comp) R.res

@@ -32,7 +32,7 @@ let buy_impl ~pool =
   let get_buy_result item_number =
     let%bind success, message = Db.Client.buy_book ~pool item_number in
     match success with
-    | true -> Ok () |> return
+    | true -> Ok item_number |> return
     | false -> Error (Idl.DefaultError.InternalError message) |> return
   in
   T.lift get_buy_result
