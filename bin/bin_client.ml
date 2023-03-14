@@ -1,7 +1,7 @@
 open Core
 open Async
 open Bookstore
-open Common
+open Common_param
 
 let call_rpc_and_print ~host ~port fn arg =
   let rpc_fn = Client.Rpc.create_remote_rpc ~host ~port in

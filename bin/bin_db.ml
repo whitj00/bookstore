@@ -1,7 +1,7 @@
 open! Core
 open Async
 open Bookstore
-open Common
+open Common_param
 
 let build_basic_cmd ~summary cmd =
   Command.async ~summary

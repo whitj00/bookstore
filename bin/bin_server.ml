@@ -1,7 +1,7 @@
 open! Core
 open Async
 open Bookstore
-open Common
+open Common_param
 
 let daemonize =
   Daemon.daemonize ~redirect_stdout:`Do_not_redirect ~cd:(Core_unix.getcwd ())
