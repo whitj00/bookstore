@@ -91,3 +91,14 @@ Price: 10.00
 > buy 12498
 Bought book 12498
 ```
+
+
+## Benchmarking Examples
+
+### Time Buy Command (500 requests/10 concurrent)
+
+    ./bookstore client time buy -item-number 12498 -n 500 -c 10 
+
+### Time Buy Command (100 sequential requests, remote)
+
+    ./bookstore client time buy -item-number 12498 -n 100 -c 1 -host bagual.cs.williams.edu
