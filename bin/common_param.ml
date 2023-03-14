@@ -1,6 +1,7 @@
 open! Core
 open Async
 
+(* This is used in bin_server and bin_db to configure the database path *)
 let db_flag =
   let default =
     [ "sqlite3:///"; Core_unix.getcwd (); "/test.db?create=true" ]
@@ -11,6 +12,8 @@ let db_flag =
       (optional_with_default default string)
       ~doc:"db_uri Sqlite path of database")
 
+(* These two functions used in bin_server and bin_client to configure
+   sending/receiving connections *)
 let host_flag =
   Command.Param.(
     flag "-host"

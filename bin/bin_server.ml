@@ -6,6 +6,7 @@ open Common_param
 let daemonize =
   Daemon.daemonize ~redirect_stdout:`Do_not_redirect ~cd:(Core_unix.getcwd ())
 
+(* This starts the server. It takes a port number and a db URI as arguments. *)
 let start_cmd =
   Command.async ~summary:"Start an server"
     (let%map_open.Command port = port_flag
@@ -18,6 +19,7 @@ let start_cmd =
        let () = if daemon then daemonize () in
        Deferred.never ())
 
+(* This prints a log of purchases. *)
 let logs_cmd =
   Command.async ~summary:"Prings a log of purchases"
     (let%map_open.Command uri = db_flag in
@@ -30,6 +32,7 @@ let logs_cmd =
              item_number price)
        |> return)
 
+(* This updates the price of a book. *)
 let update_price_cmd =
   Command.async ~summary:"Updates the price of a book"
     (let%map_open.Command id =
@@ -43,6 +46,7 @@ let update_price_cmd =
        | true -> print_endline "Price updated"
        | false -> printf "Book %d not found\n" id)
 
+(* This increases the stock of a book. *)
 let restock_cmd =
   Command.async ~summary:"Increases the stock of a book"
     (let%map_open.Command id =

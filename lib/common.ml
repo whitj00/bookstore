@@ -1,5 +1,11 @@
 open! Core
 
+(* This file defines our rpc interface. Our server and client will both use this
+   interface to communicate with each other. *)
+
+(* The rpcty ppx (preprocessing directive) is used to derive
+   marshalling/unmarshalling functions for our arguments and return types. *)
+
 module SearchRecord = struct
   type t = { title : string; item_number : int } [@@deriving rpcty]
 end
