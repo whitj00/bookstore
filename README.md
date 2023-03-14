@@ -33,7 +33,6 @@ bookstore
 ### Start
 
     ./bookstore server start
-    ./bookstore server start -daemon
     ./bookstore server start -db "sqlite3:///tmp/custom.db"
     ./bookstore server start -port 8888
 
@@ -44,7 +43,7 @@ bookstore
 ### Restock
 
     ./bookstore server restock -item-number 12365
-    ./bookstore server restock -item-number 12365 -quantity n
+    ./bookstore server restock -item-number 12365 -n 500
 
 ### Set Price
     
@@ -63,7 +62,7 @@ bookstore
 
 ### Buy Book
 
-    ./bookstore client buy -item-number 12365 -quantity 1
+    ./bookstore client buy -item-number 12365
 
 ### Interactive Input
 
